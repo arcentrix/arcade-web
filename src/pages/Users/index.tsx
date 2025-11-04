@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { Edit, Users as UsersIcon, Search, Shield, Mail, UserPlus, Lock, Power, PowerOff, Crown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -208,10 +207,6 @@ export default function UsersPage() {
   return (
     <>
       <section className='flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8'>
-            <div className='flex items-center gap-2'>
-              <SidebarTrigger />
-            </div>
-
             <div className='flex items-center justify-between'>
               <div>
                 <h2 className='text-3xl font-bold tracking-tight'>User Management</h2>

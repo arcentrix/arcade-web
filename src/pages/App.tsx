@@ -6,9 +6,15 @@ import SidebarLayoutWrapper from '@/components/Layouts/sidebar-layout'
 import Login from './Login'
 import Register from './Register'
 import Dashboard from './Dashboard'
+import Playground from './Playground'
+import Models from './Models'
+import Documentation from './Documentation'
+import API from './API'
 import IdentityIntegration from './IdentityIntegration'
 import Users from './Users'
 import Roles from './Roles'
+import Settings from './Settings'
+import GeneralSettings from './GeneralSettings'
 import { AuthCallback } from './AuthCallback'
 import 'react-toastify/dist/ReactToastify.css'
 
@@ -21,9 +27,15 @@ function App() {
             <Route element={<AuthGuard />}>
               <Route element={<SidebarLayoutWrapper />}>
                 <Route element={<Dashboard />} index path='/' />
+                <Route element={<Playground />} path='/playground' />
+                <Route element={<Models />} path='/models' />
+                <Route element={<Documentation />} path='/documentation' />
+                <Route element={<API />} path='/api' />
                 <Route element={<Users />} path='/users' />
                 <Route element={<Roles />} path='/roles' />
                 <Route element={<IdentityIntegration />} path='/identity-integration' />
+                <Route element={<Settings />} path='/settings' />
+                <Route element={<GeneralSettings />} path='/general-settings' />
               </Route>
             </Route>
             <Route element={<Login />} path='/login' />

@@ -30,7 +30,7 @@ function inviteUser(data: { email: string; role?: string }) {
 function uploadAvatar(file: File) {
   const formData = new FormData()
   formData.append('file', file)
-  return post<{ url: string }>('/users/avatar', formData, {
+  return post<{ url: string }>('/users/me/avatar', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },

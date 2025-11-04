@@ -60,7 +60,7 @@ export function AppSidebar() {
     navMain: [
       {
         title: 'Playground',
-        url: '#',
+        url: '/playground',
         icon: SquareTerminal,
         isActive: true,
         items: [
@@ -86,7 +86,7 @@ export function AppSidebar() {
       },
       {
         title: 'Models',
-        url: '#',
+        url: '/models',
         icon: Bot,
         items: [
           {
@@ -111,7 +111,7 @@ export function AppSidebar() {
       },
       {
         title: 'Documentation',
-        url: '#',
+        url: '/documentation',
         icon: BookOpen,
         items: [
           {
@@ -134,7 +134,7 @@ export function AppSidebar() {
       },
       {
         title: 'API',
-        url: '#',
+        url: '/api',
         icon: Code2,
         items: [
           {
@@ -161,12 +161,12 @@ export function AppSidebar() {
       },
       {
         title: 'Settings',
-        url: '#',
+        url: '/settings',
         icon: Settings2,
         items: [
           {
-            title: 'General',
-            url: '#',
+            title: 'General Settings',
+            url: '/general-settings',
           },
           {
             title: 'Team',

@@ -5,6 +5,7 @@ import * as organization from './organization'
 import identity_integration from './identity_integration'
 import user_management from './user-management'
 import role from './role'
+import * as general_settings from './general-settings'
 
 export const Apis = {
   auth,
@@ -14,4 +15,5 @@ export const Apis = {
   identity_integration,
   user_management,
   role,
+  general_settings,
 }

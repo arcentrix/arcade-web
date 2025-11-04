@@ -61,14 +61,13 @@ export default function IdentityIntegrationPage() {
 
   const handleSubmit = async (data: CreateIdentityProviderRequest) => {
     if (selectedProvider) {
-      // 更新
+      // 更新 - 编辑模式下不更新 is_enabled 状态，应通过页面上的 toggle 按钮控制
       const updateData: UpdateIdentityProviderRequest = {
         name: data.name,
         provider_type: data.provider_type,
         config: data.config,
         description: data.description,
         priority: data.priority,
-        is_enabled: data.is_enabled,
       }
       await Apis.identity_integration.updateIdentityProvider(selectedProvider.name, updateData)
     } else {

@@ -76,16 +76,84 @@ function NavItem({
   const location = useLocation()
   const [isOpen, setIsOpen] = useState(item.isActive || false)
   
-  // 检查当前路由是否匹配子项
+  // 只在子项被访问时自动展开（不包括一级菜单自身）
   useEffect(() => {
     if (item.items) {
-      const hasActiveChild = item.items.some(subItem => location.pathname === subItem.url)
+      const hasActiveChild = item.items.some(subItem => {
+        // 检查直接子项
+        if (location.pathname === subItem.url) return true;
+        // 检查嵌套子项
+        if (subItem.items) {
+          return subItem.items.some(child => location.pathname === child.url);
+        }
+        return false;
+      });
       if (hasActiveChild) {
-        setIsOpen(true)
+        setIsOpen(true);
       }
     }
   }, [location.pathname, item.items])
 
+  // 如果有子菜单且有有效的URL，则分离点击和展开行为
+  if (item.items && item.items.length > 0 && item.url && item.url !== '#') {
+    return (
+      <li>
+        <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+          <div className='relative min-w-8 flex h-8 w-full items-center gap-1 overflow-hidden rounded-md px-1.5 text-sm font-medium outline-none'>
+            <Link 
+              to={item.url} 
+              className='flex items-center gap-2 flex-1 overflow-hidden'
+            >
+              <item.icon className='h-4 w-4 shrink-0' />
+              <div className='flex flex-1 overflow-hidden'>
+                <div className='line-clamp-1'>{item.title}</div>
+              </div>
+            </Link>
+            <CollapsibleTrigger asChild>
+              <button
+                className='shrink-0 p-1.5 hover:bg-accent rounded-md cursor-pointer transition-all hover:text-accent-foreground'
+                onClick={(e) => {
+                  e.stopPropagation()
+                }}
+              >
+                <ChevronRight className={cn(
+                  'h-4 w-4 text-muted-foreground transition-transform',
+                  isOpen && 'rotate-90'
+                )} />
+              </button>
+            </CollapsibleTrigger>
+          </div>
+          <CollapsibleContent className='px-4 py-0.5'>
+            <ul className='grid border-l px-2'>
+              {item.items?.map((subItem) => {
+                // 检查是否有子菜单
+                if (subItem.items && subItem.items.length > 0) {
+                  return <NestedNavItem key={subItem.title} item={subItem} />
+                }
+                
+                const isActive = location.pathname === subItem.url
+                return (
+                  <li key={subItem.title}>
+                    <Link
+                      to={subItem.url}
+                      className={cn(
+                        'min-w-8 flex h-8 items-center gap-2 overflow-hidden rounded-md px-2 text-sm font-medium ring-ring transition-all hover:bg-accent hover:text-accent-foreground focus-visible:ring-2',
+                        isActive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground'
+                      )}
+                    >
+                      <div className='line-clamp-1'>{subItem.title}</div>
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          </CollapsibleContent>
+        </Collapsible>
+      </li>
+    )
+  }
+
+  // 如果没有有效URL，则整个区域是展开按钮
   return (
     <li>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -156,6 +224,57 @@ function NestedNavItem({
     }
   }, [location.pathname, item.items])
 
+  // 如果有链接地址，则渲染为可点击的链接 + 独立的展开按钮
+  if (item.url && item.url !== '#') {
+    return (
+      <li>
+        <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+          <div className='min-w-8 flex h-8 items-center gap-1 overflow-hidden rounded-md px-2 text-sm font-medium text-muted-foreground'>
+            <Link to={item.url} className='flex flex-1 overflow-hidden'>
+              <div className='line-clamp-1'>{item.title}</div>
+            </Link>
+            {item.items && item.items.length > 0 && (
+              <CollapsibleTrigger asChild>
+                <button
+                  className='shrink-0 p-1.5 hover:bg-accent rounded-md cursor-pointer transition-all hover:text-accent-foreground'
+                  onClick={(e) => {
+                    e.stopPropagation()
+                  }}
+                >
+                  <ChevronRight className={cn(
+                    'h-3 w-3 text-muted-foreground transition-transform',
+                    isOpen && 'rotate-90'
+                  )} />
+                </button>
+              </CollapsibleTrigger>
+            )}
+          </div>
+          <CollapsibleContent className='pl-2'>
+            <ul className='grid border-l ml-2'>
+              {item.items?.map((child) => {
+                const isActive = location.pathname === child.url
+                return (
+                  <li key={child.title}>
+                    <Link
+                      to={child.url}
+                      className={cn(
+                        'min-w-8 flex h-8 items-center gap-2 overflow-hidden rounded-md px-2 text-sm font-medium ring-ring transition-all hover:bg-accent hover:text-accent-foreground focus-visible:ring-2',
+                        isActive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground'
+                      )}
+                    >
+                      <div className='line-clamp-1'>{child.title}</div>
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          </CollapsibleContent>
+        </Collapsible>
+      </li>
+    )
+  }
+
+  // 如果没有链接地址，整个区域都是展开/折叠按钮
   return (
     <li>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>

@@ -104,8 +104,6 @@ export function NavUser({
         return
       }
       
-      // 有 token 但没有用户信息，请求一次
-      console.log('[NavUser] Fetching user info from API (store is empty)')
       setIsLoading(true)
       try {
         const userInfo = await Apis.user.getUserInfo()
@@ -182,16 +180,16 @@ export function NavUser({
       })
       
       // 更新本地用户信息
-      let displayName = updatedUserInfo.username
-      if (updatedUserInfo.firstName && updatedUserInfo.lastName) {
+      let displayName = updatedUserInfo?.username || currentUserInfo.username || user.name
+      if (updatedUserInfo?.firstName && updatedUserInfo?.lastName) {
         displayName = language === 'zh-CN'
           ? `${updatedUserInfo.lastName} ${updatedUserInfo.firstName}`  // 中文：姓 名
           : `${updatedUserInfo.firstName} ${updatedUserInfo.lastName}`  // 英文：名 姓
       }
       setUser({
         name: displayName,
-        email: updatedUserInfo.email,
-        avatar: updatedUserInfo.avatar || DEFAULT_USER_AVATAR,
+        email: updatedUserInfo?.email || user.email,
+        avatar: updatedUserInfo?.avatar || data.avatar || user.avatar,
       })
       
       // 更新 store
@@ -230,7 +228,7 @@ export function NavUser({
     try {
       setIsUploading(true)
       
-      // 创建预览
+      // 创建本地预览
       const reader = new FileReader()
       reader.onloadend = () => {
         setAvatarPreview(reader.result as string)
@@ -240,14 +238,29 @@ export function NavUser({
       // 上传到服务器
       const response = await Apis.user.uploadAvatar(file)
       
+      // 获取最新的用户信息
+      const refreshedUserInfo = await Apis.user.getUserInfo()
+      
+      // 更新 store
+      userStore.updateState((state) => {
+        state.userinfo = refreshedUserInfo
+      })
+      
+      // 立即更新用户头像显示
+      const newAvatar = refreshedUserInfo.avatar || response.url
+      setAvatarPreview(newAvatar)
+      setUser({
+        ...user,
+        avatar: newAvatar,
+      })
+      
       // 更新表单中的 avatar 值
-      const userInfo = userStore.getState().userinfo
       reset({
-        firstName: userInfo?.firstName || '',
-        lastName: userInfo?.lastName || '',
-        email: user.email,
-        phone: userInfo?.phone || '',
-        avatar: response.url,
+        firstName: refreshedUserInfo?.firstName || '',
+        lastName: refreshedUserInfo?.lastName || '',
+        email: refreshedUserInfo?.email || user.email,
+        phone: refreshedUserInfo?.phone || '',
+        avatar: newAvatar,
       })
       
       toast.success('Avatar uploaded', 'Your avatar has been uploaded successfully')
@@ -418,15 +431,13 @@ export function NavUser({
                   <div className='grid gap-3'>
                     <Label htmlFor='avatar'>Avatar</Label>
                     <div className='flex items-center gap-4'>
-                      {avatarPreview && (
-                        <div className='relative h-20 w-20 overflow-hidden rounded-full border-2 border-border'>
-                          <img
-                            src={avatarPreview}
-                            alt='Avatar preview'
-                            className='h-full w-full object-cover'
-                          />
-                        </div>
-                      )}
+                      <div className='relative h-20 w-20 overflow-hidden rounded-full border-2 border-border'>
+                        <img
+                          src={avatarPreview || user.avatar}
+                          alt='Avatar'
+                          className='h-full w-full object-cover'
+                        />
+                      </div>
                       <div className='flex flex-col gap-2'>
                         <input
                           ref={fileInputRef}
@@ -443,19 +454,16 @@ export function NavUser({
                           disabled={isUploading || isSaving}
                         >
                           <Upload className='mr-2 h-4 w-4' />
-                          {isUploading ? 'Uploading...' : 'Upload'}
+                          {isUploading ? 'Uploading...' : 'Upload New'}
                         </Button>
                         <p className='text-xs text-muted-foreground'>
                           JPG, PNG, GIF or WebP (Max 5MB)
                         </p>
                       </div>
                     </div>
-                    <Input
-                      id='avatar'
+                    <input
+                      type='hidden'
                       {...register('avatar')}
-                      placeholder='Or enter avatar URL'
-                      disabled={isSaving}
-                      className='mt-2'
                     />
                   </div>
                 </div>

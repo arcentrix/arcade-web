@@ -193,8 +193,14 @@ export function IdentityIntegrationConfigDialog({ open, onOpenChange, provider, 
 
           <div className='space-y-2'>
             <div className='flex items-center justify-between'>
-              <Label>Configuration (JSON Format)</Label>
-              <Button type='button' variant='outline' size='sm' onClick={handleAddConfigItem}>
+              <Label>Configuration</Label>
+              <Button 
+                type='button' 
+                variant='outline' 
+                size='sm' 
+                onClick={handleAddConfigItem}
+                disabled={!!provider}
+              >
                 <Plus className='h-4 w-4 mr-1' />
                 Add Item
               </Button>
@@ -208,6 +214,7 @@ export function IdentityIntegrationConfigDialog({ open, onOpenChange, provider, 
                     value={item.key}
                     onChange={(e) => handleConfigItemChange(index, 'key', e.target.value)}
                     className='flex-1'
+                    disabled={!!provider && !!item.key}
                   />
                   <Input
                     placeholder='Value (e.g.: YOUR_CLIENT_ID)'
@@ -220,7 +227,7 @@ export function IdentityIntegrationConfigDialog({ open, onOpenChange, provider, 
                     variant='ghost'
                     size='icon'
                     onClick={() => handleRemoveConfigItem(index)}
-                    disabled={configItems.length === 1}
+                    disabled={configItems.length === 1 || (!!provider && !!item.key)}
                   >
                     <Trash2 className='h-4 w-4' />
                   </Button>
@@ -240,10 +247,16 @@ export function IdentityIntegrationConfigDialog({ open, onOpenChange, provider, 
               checked={formData.is_enabled}
               onChange={(e) => setFormData({ ...formData, is_enabled: e.target.checked })}
               className='h-4 w-4 rounded border-gray-300'
+              disabled={!!provider}
             />
-            <Label htmlFor='is_enabled' className='cursor-pointer'>
+            <Label htmlFor='is_enabled' className={!!provider ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}>
               Enable this provider
             </Label>
+            {provider && (
+              <p className='text-xs text-muted-foreground ml-2'>
+                (Use the toggle button on the list page to enable/disable)
+              </p>
+            )}
           </div>
 
           <DialogFooter>
