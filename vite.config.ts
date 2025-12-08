@@ -37,26 +37,29 @@ export default defineConfig(({ command, mode }) => {
       sourcemap: mode === 'analysis',
       rollupOptions: {
         output: {
-          // ---- 分离 React 核心 into vendor chunk ----
           manualChunks: {
             react: ['react', 'react-dom', 'react-router-dom'],
           },
 
-          // ---- 新增：将图片单独放到 images 目录 ----
           assetFileNames: (assetInfo) => {
             const ext = assetInfo.name?.split('.').pop()?.toLowerCase()
 
-            // 图片类资源统一放到 images/
             if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'ico'].includes(ext || '')) {
               return 'images/[name]-[hash][extname]'
             }
 
-            // 字体
+            if (['js'].includes(ext || '')) {
+              return 'assets/js/[name]-[hash][extname]'
+            }
+
+            if (['css'].includes(ext || '')) {
+              return 'assets/css/[name]-[hash][extname]'
+            }
+
             if (['woff', 'woff2', 'ttf', 'eot'].includes(ext || '')) {
               return 'fonts/[name]-[hash][extname]'
             }
 
-            // 其他静态资源保留 assets/
             return 'assets/[name]-[hash][extname]'
           },
         },
