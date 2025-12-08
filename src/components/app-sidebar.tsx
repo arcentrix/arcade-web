@@ -28,10 +28,10 @@ import {
   SidebarItem,
   SidebarLabel,
 } from '@/components/ui/sidebar'
-import LOGO from '@/assets/logo.png'
+import { APP_LOGO } from '@/constants/assets'
 
 export function AppSidebar() {
-  const logo = () => <img alt='Arcade' src={LOGO} />
+  const logo = () => <img alt='Arcade' src={APP_LOGO} />
 
   const data = {
     organizations: [
@@ -55,7 +55,7 @@ export function AppSidebar() {
     user: {
       name: 'User',
       email: 'user@example.com',
-      avatar: LOGO,
+      avatar: APP_LOGO,
     },
     navMain: [
       {

@@ -1,5 +1,5 @@
 import type { FC } from 'react'
-import LOGO from '@/assets/logo.png'
+import { APP_LOGO } from '@/constants/assets'
 import { LoginForm } from '@/components/login-form'
 
 interface LoginProps {}
@@ -11,7 +11,7 @@ const Login: FC<LoginProps> = () => {
         <div className='flex justify-center gap-2 md:justify-start'>
           <a href='/' className='flex items-center gap-2 font-medium'>
             <div className='bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-md p-1'>
-              <img alt='Arcade' src={LOGO} className='h-full w-full object-contain' />
+              <img alt='Arcade' src={APP_LOGO} className='h-full w-full object-contain' />
             </div>
             Arcade
           </a>
