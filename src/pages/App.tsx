@@ -10,7 +10,7 @@ import Playground from './Playground'
 import Models from './Models'
 import Documentation from './Documentation'
 import API from './API'
-import IdentityIntegration from './IdentityIntegration'
+import Identity from './Identity'
 import Users from './Users'
 import Roles from './Roles'
 import Settings from './Settings'
@@ -33,7 +33,7 @@ function App() {
                 <Route element={<API />} path='/api' />
                 <Route element={<Users />} path='/users' />
                 <Route element={<Roles />} path='/roles' />
-                <Route element={<IdentityIntegration />} path='/identity-integration' />
+                <Route element={<Identity />} path='/identity-integration' />
                 <Route element={<Settings />} path='/settings' />
                 <Route element={<GeneralSettings />} path='/general-settings' />
               </Route>

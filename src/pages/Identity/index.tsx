@@ -6,12 +6,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { IdentityIntegrationConfigDialog } from '@/components/identity-integration-config-dialog'
+import { IdentityConfigDialog } from '@/components/identity-config-dialog'
 import { toast } from '@/lib/toast'
-import type { IdentityProvider, CreateIdentityProviderRequest, UpdateIdentityProviderRequest } from '@/api/identity_integration/types'
+import type { IdentityProvider, CreateIdentityProviderRequest, UpdateIdentityProviderRequest } from '@/api/identity/types'
 import { Apis } from '@/api'
 
-export default function IdentityIntegrationPage() {
+export default function IdentityPage() {
   const [providers, setProviders] = useState<IdentityProvider[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -152,7 +152,7 @@ export default function IdentityIntegrationPage() {
       <section className='flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8'>
             <div className='flex items-center justify-between'>
               <div>
-                <h2 className='text-3xl font-bold tracking-tight'>Identity Integration</h2>
+                <h2 className='text-3xl font-bold tracking-tight'>Identity</h2>
                 <p className='text-muted-foreground mt-2'>Manage identity authentication integration providers</p>
               </div>
               <Button onClick={handleCreate}>
@@ -297,7 +297,7 @@ export default function IdentityIntegrationPage() {
             </Card>
       </section>
 
-      <IdentityIntegrationConfigDialog
+      <IdentityConfigDialog
         key={selectedProvider?.id || 'new'}
         open={dialogOpen}
         onOpenChange={setDialogOpen}

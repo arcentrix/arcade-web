@@ -195,7 +195,7 @@ export function AppSidebar() {
             ],
           },
           {
-            title: 'Identity Integration',
+            title: 'Identity',
             url: '/identity-integration',
           },
         ],

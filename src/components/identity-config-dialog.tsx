@@ -13,9 +13,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from '@/lib/toast'
-import type { IdentityProvider, ProviderType, IdentityProviderConfig } from '@/api/identity_integration/types'
+import type { IdentityProvider, ProviderType, IdentityProviderConfig } from '@/api/identity/types'
 
-interface IdentityIntegrationConfigDialogProps {
+interface IdentityConfigDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   provider?: IdentityProvider | null
@@ -29,7 +29,7 @@ interface IdentityIntegrationConfigDialogProps {
   }) => Promise<void>
 }
 
-export function IdentityIntegrationConfigDialog({ open, onOpenChange, provider, onSubmit }: IdentityIntegrationConfigDialogProps) {
+export function IdentityConfigDialog({ open, onOpenChange, provider, onSubmit }: IdentityConfigDialogProps) {
   const [formData, setFormData] = useState({
     name: '',
     provider_type: 'oauth' as ProviderType,
@@ -126,7 +126,7 @@ export function IdentityIntegrationConfigDialog({ open, onOpenChange, provider, 
         <DialogHeader>
           <DialogTitle>{provider ? 'Edit Identity Provider' : 'Create Identity Provider'}</DialogTitle>
           <DialogDescription>
-            Configure identity integration provider with support for OAuth, LDAP, OIDC, and SAML protocols
+            Configure Identity provider with support for OAuth, LDAP, OIDC, and SAML protocols
           </DialogDescription>
         </DialogHeader>
 

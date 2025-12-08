@@ -59,7 +59,7 @@ const settingsItems = [
     color: 'text-red-500',
   },
   {
-    title: 'Identity Integration',
+    title: 'Identity',
     url: '/identity-integration',
     description: 'Configure SSO and identity providers',
     icon: KeyRound,
