@@ -1,9 +1,8 @@
-import { get, post, put, del } from '../client'
+import { get, post, put, del, dedupeRequest, generateRequestKey } from '../client'
 import type {
   IdentityProvider,
   CreateIdentityProviderRequest,
   UpdateIdentityProviderRequest,
-  IdentityProviderListResponse,
 } from './types'
 
 /**
@@ -11,7 +10,10 @@ import type {
  */
 export const listIdentityProviders = async (type?: string): Promise<IdentityProvider[]> => {
   const url = type ? `/identity/providers?type=${type}` : '/identity/providers'
-  return get<IdentityProvider[]>(url)
+  
+  // 使用请求去重
+  const key = generateRequestKey(url)
+  return dedupeRequest(key, () => get<IdentityProvider[]>(url))
 }
 
 /**
@@ -25,7 +27,10 @@ export const listProviderTypes = async (): Promise<string[]> => {
  * 获取单个 Identity 提供者详情
  */
 export const getIdentityProvider = async (name: string): Promise<IdentityProvider> => {
-  return get<IdentityProvider>(`/identity/providers/${name}`)
+  const url = `/identity/providers/${name}`
+  // 使用请求去重
+  const key = generateRequestKey(url)
+  return dedupeRequest(key, () => get<IdentityProvider>(url))
 }
 
 /**

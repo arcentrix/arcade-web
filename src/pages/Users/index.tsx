@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Edit, Users as UsersIcon, Search, Shield, Mail, UserPlus, Lock, Power, PowerOff, Crown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { UserManagementDialog } from '@/components/user-management-dialog'
 import { ResetPasswordDialog } from '@/components/reset-password-dialog'
+import { DataTablePagination } from '@/components/data-table-pagination'
 import {
   Dialog,
   DialogContent,
@@ -20,7 +21,7 @@ import {
 } from '@/components/ui/dialog'
 import { toast } from '@/lib/toast'
 import { DEFAULT_USER_AVATAR } from '@/constants/assets'
-import type { User, UpdateUserRequest } from '@/api/user-management/types'
+import type { User, UpdateUserRequest, UserListResponse } from '@/api/user-management/types'
 import type { Role } from '@/api/role/types'
 import { Apis } from '@/api'
 
@@ -35,24 +36,71 @@ export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterRole, setFilterRole] = useState<string>('all')
   const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [pageNum, setPageNum] = useState(1)
+  const [pageSize] = useState(10)
+  const [totalCount, setTotalCount] = useState(0)
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteRole, setInviteRole] = useState<string>('')
-  const hasFetchedRef = useRef(false)
 
+  // 只在首次加载时获取角色列表
   useEffect(() => {
-    if (!hasFetchedRef.current) {
-      hasFetchedRef.current = true
-      loadUsers()
-      loadRoles()
-    }
+    loadRoles()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // 当筛选条件变化时，重置到第一页
+  useEffect(() => {
+    setPageNum(1)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, filterRole, filterStatus])
+
+  // 当页码、搜索条件或筛选条件变化时，加载用户列表
+  useEffect(() => {
+    loadUsers()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageNum, searchTerm, filterRole, filterStatus])
 
   const loadUsers = async () => {
     setLoading(true)
     try {
-      const response = await Apis.user_management.listUsers()
-      setUsers(response.users)
+      let response: UserListResponse
+      
+      // 如果选择了角色筛选，使用按角色查询接口
+      if (filterRole !== 'all') {
+        response = await Apis.user_management.listUsersByRole(filterRole, pageNum, pageSize)
+      } else {
+        // 否则使用普通用户列表接口
+        response = await Apis.user_management.listUsers(pageNum, pageSize, {
+          search: searchTerm || undefined,
+          status: filterStatus !== 'all' ? filterStatus : undefined,
+        })
+      }
+      
+      // 如果有搜索词或状态筛选，在前端进行二次筛选
+      let filteredUsers = response.users
+      if (searchTerm) {
+        const term = searchTerm.toLowerCase()
+        filteredUsers = filteredUsers.filter((user) =>
+          user.username.toLowerCase().includes(term) ||
+          user.email.toLowerCase().includes(term) ||
+          (user.fullName && user.fullName.toLowerCase().includes(term))
+        )
+      }
+      if (filterStatus !== 'all') {
+        if (filterStatus === 'active') {
+          filteredUsers = filteredUsers.filter((user) => user.isEnabled === 1)
+        } else if (filterStatus === 'inactive') {
+          filteredUsers = filteredUsers.filter((user) => user.isEnabled === 0)
+        }
+      }
+      
+      setUsers(filteredUsers)
+      // 如果进行了前端筛选，使用筛选后的数量；否则使用后端返回的总数
+      setTotalCount(
+        searchTerm || filterStatus !== 'all'
+          ? filteredUsers.length
+          : response.count || 0
+      )
     } catch (error) {
       toast.error('Failed to load users')
       console.error('Load failed:', error)
@@ -120,45 +168,75 @@ export default function UsersPage() {
     }
   }
 
-  // 筛选逻辑
-  const filteredUsers = useMemo(() => {
-    return users.filter((user) => {
-      // 按角色筛选
-      if (filterRole !== 'all' && user.role !== filterRole) {
-        return false
-      }
+  // 使用后端分页，直接使用返回的用户列表
+  const totalPages = Math.ceil(totalCount / pageSize)
 
-      // 按状态筛选
-      if (filterStatus === 'active' && user.isEnabled !== 1) {
-        return false
-      }
-      if (filterStatus === 'inactive' && user.isEnabled !== 0) {
-        return false
-      }
-
-      // 按搜索词筛选
-      if (searchTerm) {
-        const term = searchTerm.toLowerCase()
+  const getRoleBadge = (user: User) => {
+    // 优先使用 API 返回的 roleName
+    if (user.roleName) {
+      // 尝试通过 roleName 找到对应的角色对象以获取图标和颜色
+      const role = roles.find((r) => r.name === user.roleName || r.displayName === user.roleName)
+      
+      if (role) {
+        const Icon = role.isBuiltin === 1 ? Crown : Shield
+        const getColorClass = () => {
+          if (role.priority >= 50) {
+            return 'bg-rose-50 text-rose-600 border border-rose-200'
+          } else if (role.priority >= 40) {
+            return 'bg-amber-50 text-amber-600 border border-amber-200'
+          } else if (role.priority >= 30) {
+            return 'bg-sky-50 text-sky-600 border border-sky-200'
+          } else {
+            return 'bg-gray-100 text-gray-600 border border-gray-200'
+          }
+        }
+        
         return (
-          user.username.toLowerCase().includes(term) ||
-          user.email.toLowerCase().includes(term) ||
-          (user.firstName && user.firstName.toLowerCase().includes(term)) ||
-          (user.lastName && user.lastName.toLowerCase().includes(term))
+          <Badge variant='outline' className={getColorClass()}>
+            <Icon className='mr-1 h-3 w-3' />
+            {user.roleName}
+          </Badge>
         )
       }
+      
+      // 如果找不到角色对象，直接显示 roleName
+      return (
+        <Badge variant='outline' className='bg-gray-100 text-gray-600 border border-gray-200'>
+          <Shield className='mr-1 h-3 w-3' />
+          {user.roleName}
+        </Badge>
+      )
+    }
 
-      return true
-    })
-  }, [users, filterRole, filterStatus, searchTerm])
+    // 如果没有 roleName，回退到通过 role 字段查找
+    const roleValue = user.role
+    if (!roleValue) {
+      return (
+        <Badge variant='outline' className='bg-gray-100 text-gray-600 border border-gray-200'>
+          <Shield className='mr-1 h-3 w-3' />
+          Unknown
+        </Badge>
+      )
+    }
 
-  const getRoleBadge = (roleId: string) => {
-    const role = roles.find((r) => r.roleId === roleId || r.name === roleId)
+    // 尝试通过 roleId 匹配
+    let role = roles.find((r) => r.roleId === roleValue)
+    
+    // 如果没找到，尝试通过 name 匹配
+    if (!role) {
+      role = roles.find((r) => r.name === roleValue)
+    }
+    
+    // 如果还是没找到，尝试不区分大小写匹配
+    if (!role) {
+      role = roles.find((r) => r.roleId.toLowerCase() === roleValue.toLowerCase() || r.name.toLowerCase() === roleValue.toLowerCase())
+    }
     
     if (!role) {
       return (
         <Badge variant='outline' className='bg-gray-100 text-gray-600 border border-gray-200'>
           <Shield className='mr-1 h-3 w-3' />
-          {roleId}
+          {roleValue}
         </Badge>
       )
     }
@@ -182,7 +260,7 @@ export default function UsersPage() {
     return (
       <Badge variant='outline' className={getColorClass()}>
         <Icon className='mr-1 h-3 w-3' />
-        {role.displayName || role.name}
+        {role.name}
       </Badge>
     )
   }
@@ -249,7 +327,7 @@ export default function UsersPage() {
                       <SelectItem value='all'>All Roles</SelectItem>
                       {roles.map((role) => (
                         <SelectItem key={role.roleId} value={role.roleId}>
-                          {role.displayName || role.name}
+                          {role.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -271,13 +349,13 @@ export default function UsersPage() {
                   <div className='flex items-center justify-center py-8'>
                     <p className='text-muted-foreground'>Loading...</p>
                   </div>
-                ) : filteredUsers.length === 0 ? (
+                ) : users.length === 0 ? (
                   <div className='flex flex-col items-center justify-center py-12'>
                     <UsersIcon className='h-12 w-12 text-muted-foreground mb-4' />
                     <p className='text-muted-foreground mb-4'>
-                      {users.length === 0 ? 'No users found' : 'No users match your filters'}
+                      {totalCount === 0 ? 'No users found' : 'No users match your filters'}
                     </p>
-                    {users.length === 0 ? (
+                    {totalCount === 0 ? (
                       <Button onClick={() => setInviteDialogOpen(true)}>
                         <Mail className='mr-2 h-4 w-4' />
                         Invite Your First User
@@ -289,6 +367,7 @@ export default function UsersPage() {
                           setSearchTerm('')
                           setFilterRole('all')
                           setFilterStatus('all')
+                          setPageNum(1)
                         }}
                       >
                         Clear Filters
@@ -296,6 +375,7 @@ export default function UsersPage() {
                     )}
                   </div>
                 ) : (
+                  <>
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -309,7 +389,7 @@ export default function UsersPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredUsers.map((user) => (
+                      {users.map((user) => (
                         <TableRow key={user.userId}>
                           <TableCell>
                             <div className='flex items-center gap-3'>
@@ -319,16 +399,16 @@ export default function UsersPage() {
                               </Avatar>
                               <div>
                                 <div className='font-medium'>{user.username}</div>
-                                {(user.firstName || user.lastName) && (
+                                {user.fullName && (
                                   <div className='text-sm text-muted-foreground'>
-                                    {user.firstName} {user.lastName}
+                                    {user.fullName}
                                   </div>
                                 )}
                               </div>
                             </div>
                           </TableCell>
                           <TableCell>{user.email}</TableCell>
-                          <TableCell>{getRoleBadge(user.role || 'user')}</TableCell>
+                          <TableCell>{getRoleBadge(user)}</TableCell>
                           <TableCell>
                             {user.isEnabled === 1 ? (
                               <Badge variant='outline' className='bg-emerald-50 text-emerald-600 border border-emerald-200'>
@@ -380,6 +460,19 @@ export default function UsersPage() {
                       ))}
                     </TableBody>
                   </Table>
+                  
+                  {/* 分页控件 */}
+                  {totalPages > 1 && (
+                    <div className="mt-4 pt-4 border-t">
+                      <DataTablePagination
+                        page={pageNum}
+                        pageSize={pageSize}
+                        total={totalCount}
+                        onPageChange={setPageNum}
+                      />
+                    </div>
+                  )}
+                  </>
                 )}
               </CardContent>
             </Card>
@@ -430,7 +523,7 @@ export default function UsersPage() {
                     const scopeLabel = role.scope === 'org' ? 'Organization' : role.scope === 'team' ? 'Team' : role.scope === 'project' ? 'Project' : role.scope
                     return (
                       <SelectItem key={role.roleId} value={role.roleId}>
-                        {role.displayName || role.name} ({scopeLabel})
+                        {role.name} ({scopeLabel})
                       </SelectItem>
                     )
                   })}

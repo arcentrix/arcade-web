@@ -3,10 +3,17 @@
  */
 
 /**
+ * Settings ID 类型别名，UUID 格式的字符串
+ */
+export type SettingsId = string;
+
+/**
  * 通用配置项
+ * @property settingsId - Settings ID，UUID 格式的字符串，用于查询、更新、删除等操作
  */
 export interface GeneralSettings {
-  id: number;
+  /** Settings ID，UUID 格式的字符串，所有基于此配置的操作都需要使用此 ID */
+  settingsId: SettingsId;
   category: string;
   name: string;
   displayName: string;
@@ -30,8 +37,8 @@ export interface UpdateGeneralSettingsRequest {
  */
 export interface GetGeneralSettingsListRequest {
   category?: string;
-  page?: number;
-  page_size?: number;
+  pageNum?: number;
+  pageSize?: number;
 }
 
 /**

@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from '@/lib/toast'
 import type { User, UserRole, UpdateUserRequest } from '@/api/user-management/types'
@@ -28,8 +29,7 @@ export function UserManagementDialog({ open, onOpenChange, user, roles, onSubmit
   const [formData, setFormData] = useState({
     username: '',
     email: '',
-    firstName: '',
-    lastName: '',
+    fullName: '',
     phone: '',
     role: '',
     isActive: true,
@@ -39,20 +39,28 @@ export function UserManagementDialog({ open, onOpenChange, user, roles, onSubmit
 
   useEffect(() => {
     if (user && open) {
+      // 确保 role 是 roleId，如果 user.role 是 name，需要找到对应的 roleId
+      let roleId = user.role || ''
+      if (roleId && roles.length > 0) {
+        const matchedRole = roles.find((r) => r.roleId === roleId || r.name === roleId)
+        roleId = matchedRole ? matchedRole.roleId : (roles.length > 0 ? roles[0].roleId : '')
+      } else if (!roleId && roles.length > 0) {
+        roleId = roles[0].roleId
+      }
+      
       setFormData({
         username: user.username,
         email: user.email,
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
+        fullName: user.fullName || '',
         phone: user.phone || '',
-        role: user.role || (roles.length > 0 ? roles[0].roleId : ''),
+        role: roleId,
         isActive: user.isEnabled === 1,
       })
     } else if (open && roles.length > 0 && !formData.role) {
       // 设置默认角色为第一个可用角色
       setFormData(prev => ({ ...prev, role: roles[0].roleId }))
     }
-  }, [user, open, roles, formData.role])
+  }, [user, open, roles])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -62,8 +70,7 @@ export function UserManagementDialog({ open, onOpenChange, user, roles, onSubmit
       const updateData: UpdateUserRequest = {
         username: formData.username,
         email: formData.email,
-        firstName: formData.firstName || undefined,
-        lastName: formData.lastName || undefined,
+        fullName: formData.fullName || undefined,
         phone: formData.phone || undefined,
         role: formData.role as UserRole,
         isEnabled: formData.isActive ? 1 : 0,
@@ -118,26 +125,14 @@ export function UserManagementDialog({ open, onOpenChange, user, roles, onSubmit
             </div>
           </div>
 
-          <div className='grid grid-cols-2 gap-4'>
-            <div className='space-y-2'>
-              <Label htmlFor='firstName'>First Name</Label>
-              <Input
-                id='firstName'
-                value={formData.firstName}
-                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                placeholder='Enter first name'
-              />
-            </div>
-
-            <div className='space-y-2'>
-              <Label htmlFor='lastName'>Last Name</Label>
-              <Input
-                id='lastName'
-                value={formData.lastName}
-                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                placeholder='Enter last name'
-              />
-            </div>
+          <div className='space-y-2'>
+            <Label htmlFor='fullName'>Full Name</Label>
+            <Input
+              id='fullName'
+              value={formData.fullName}
+              onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+              placeholder='Enter full name'
+            />
           </div>
 
           <div className='grid grid-cols-2 gap-4'>
@@ -158,29 +153,28 @@ export function UserManagementDialog({ open, onOpenChange, user, roles, onSubmit
                 onValueChange={(value: string) => setFormData({ ...formData, role: value })}
               >
                 <SelectTrigger id='role'>
-                  <SelectValue />
+                  <SelectValue>
+                    {formData.role
+                      ? roles.find((r) => r.roleId === formData.role)?.name || formData.role
+                      : 'Select a role'}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {roles.map((role) => {
-                    const scopeLabel = role.scope === 'org' ? 'Organization' : role.scope === 'team' ? 'Team' : role.scope === 'project' ? 'Project' : role.scope
-                    return (
-                      <SelectItem key={role.roleId} value={role.roleId}>
-                        {role.displayName || role.name} ({scopeLabel})
-                      </SelectItem>
-                    )
-                  })}
+                  {roles.map((role) => (
+                    <SelectItem key={role.roleId} value={role.roleId}>
+                      {role.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
 
           <div className='flex items-center space-x-2'>
-            <input
-              type='checkbox'
+            <Switch
               id='isActive'
               checked={formData.isActive}
-              onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-              className='h-4 w-4 rounded border-gray-300'
+              onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
             />
             <Label htmlFor='isActive' className='cursor-pointer'>
               Active user

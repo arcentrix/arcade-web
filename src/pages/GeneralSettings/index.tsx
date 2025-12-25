@@ -71,33 +71,33 @@ export default function GeneralSettingsPage() {
       const list = response.list || [];
       setSettings(list);
       
-      // 从配置列表中提取类别信息，记录每个类别的最小ID
-      const categoryMap = new Map<string, { count: number; minId: number }>();
+      // 从配置列表中提取类别信息
+      const categoryMap = new Map<string, { count: number; firstSettingsId: string }>();
       list.forEach((item) => {
         const existing = categoryMap.get(item.category);
         if (existing) {
           categoryMap.set(item.category, {
             count: existing.count + 1,
-            minId: Math.min(existing.minId, item.id),
+            firstSettingsId: existing.firstSettingsId, // 保持第一个 settingsId
           });
         } else {
           categoryMap.set(item.category, {
             count: 1,
-            minId: item.id,
+            firstSettingsId: item.settingsId,
           });
         }
       });
       
-      // 按照最小ID排序类别
+      // 按照类别的第一个 settingsId 排序（字符串排序）
       const categoriesData: Category[] = Array.from(categoryMap.entries())
         .map(([category, info]) => ({
           category,
           count: info.count,
         }))
         .sort((a, b) => {
-          const aMinId = categoryMap.get(a.category)!.minId;
-          const bMinId = categoryMap.get(b.category)!.minId;
-          return aMinId - bMinId;
+          const aId = categoryMap.get(a.category)!.firstSettingsId;
+          const bId = categoryMap.get(b.category)!.firstSettingsId;
+          return aId.localeCompare(bId);
         });
       
       setCategories(categoriesData);
@@ -130,19 +130,34 @@ export default function GeneralSettingsPage() {
     return acc;
   }, {} as Record<string, GeneralSettings[]>);
 
-  // 按照每个类别的最小ID排序
+  // 按照每个类别的第一个 settingsId 排序（字符串排序）
   const categoriesList = Object.keys(settingsByCategory).sort((a, b) => {
-    const aMinId = Math.min(...settingsByCategory[a].map(item => item.id));
-    const bMinId = Math.min(...settingsByCategory[b].map(item => item.id));
-    return aMinId - bMinId;
+    const aFirstId = settingsByCategory[a][0]?.settingsId || '';
+    const bFirstId = settingsByCategory[b][0]?.settingsId || '';
+    return aFirstId.localeCompare(bFirstId);
   });
 
-  // 更新配置
   const handleUpdate = async (data: any) => {
-    if (!editingSettings) return;
+    const currentSettings = editingSettings;
+    if (!currentSettings) {
+      toast.error('No settings selected');
+      return;
+    }
+    
+    // 使用 settingsId（UUID 格式字符串）进行更新
+    const settingsId = currentSettings.settingsId;
+    if (!settingsId) {
+      console.error('Settings ID is missing:', currentSettings);
+      toast.error('Settings ID is missing. Please refresh the page.');
+      return;
+    }
+    
     try {
-      await updateGeneralSettings(editingSettings.id, data);
+      await updateGeneralSettings(settingsId, data);
       toast.success('update success');
+      // 更新成功后清空 editingSettings 并关闭对话框
+      setEditingSettings(null);
+      setDialogOpen(false);
       loadSettings();
     } catch (error) {
       toast.error('update failed');
@@ -298,7 +313,7 @@ export default function GeneralSettingsPage() {
                       <tbody>
                         {settingsByCategory[category].map((item, index) => (
                           <tr 
-                            key={item.id} 
+                            key={`${category}-${item.settingsId || index}`} 
                             className={`hover:bg-muted/50 transition-colors ${index !== 0 ? 'border-t' : ''}`}
                           >
                             <td className="w-1/5 px-5 py-3 font-medium text-foreground">

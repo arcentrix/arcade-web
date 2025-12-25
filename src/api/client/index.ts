@@ -35,7 +35,11 @@ client.interceptors.response.use(
   (response) => {
     const data: ApiClientResponse | ApiClientErrorResponse = response.data
 
-    if (data.code === 200) return (data as ApiClientResponse).detail
+    if (data.code === 200) {
+      // 支持 detail 和 data 两种字段名
+      const apiResponse = data as ApiClientResponse
+      return apiResponse.detail !== undefined ? apiResponse.detail : (response.data as any).data
+    }
     if (isDev()) console.warn('[RESPONSE ERROR]', data)
 
     // Token 相关错误，自动登出并跳转
@@ -66,6 +70,67 @@ client.interceptors.response.use(
     return Promise.reject(error as Error)
   },
 )
+
+/**
+ * 请求去重工具
+ * 确保相同的请求在同一时间只执行一次
+ */
+
+// 存储正在进行的请求
+const pendingRequests = new Map<string, Promise<any>>()
+
+/**
+ * 生成请求的唯一标识
+ * @param url 请求 URL
+ * @param params 请求参数（可选）
+ * @returns 唯一标识字符串
+ */
+export function generateRequestKey(url: string, params?: any): string {
+  if (!params) {
+    return url
+  }
+  
+  // 将参数序列化为字符串
+  const paramsStr = typeof params === 'object' 
+    ? JSON.stringify(params, Object.keys(params).sort())
+    : String(params)
+  
+  return `${url}?${paramsStr}`
+}
+
+/**
+ * 创建带去重功能的请求函数
+ * @param key 请求的唯一标识（通常是 URL + 参数）
+ * @param requestFn 实际的请求函数
+ * @returns Promise
+ */
+export function dedupeRequest<T>(
+  key: string,
+  requestFn: () => Promise<T>
+): Promise<T> {
+  // 如果已经有相同的请求正在进行，直接返回该 Promise
+  const pendingRequest = pendingRequests.get(key)
+  if (pendingRequest) {
+    return pendingRequest as Promise<T>
+  }
+
+  // 创建新的请求
+  const requestPromise = requestFn()
+    .then((data) => {
+      // 请求完成后，从 Map 中移除
+      pendingRequests.delete(key)
+      return data
+    })
+    .catch((error) => {
+      // 请求失败后，也要从 Map 中移除
+      pendingRequests.delete(key)
+      throw error
+    })
+
+  // 将请求保存到 Map 中
+  pendingRequests.set(key, requestPromise)
+  return requestPromise
+}
 
 export function get<T = unknown>(url: string, config?: RequestConfig) {
   return client.get<unknown, T>(url, config)

@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -295,17 +296,15 @@ export function GeneralSettingsDialog({
       return (
         <div key={key} className="space-y-2">
           <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
+            <Switch
               id={key}
               checked={Boolean(value)}
-              onChange={(e) => {
-                setFormData({ ...formData, [key]: e.target.checked });
+              onCheckedChange={(checked) => {
+                setFormData({ ...formData, [key]: checked });
                 if (errors[key]) {
                   setErrors({ ...errors, [key]: '' });
                 }
               }}
-              className="h-4 w-4 rounded border-gray-300"
             />
             <Label htmlFor={key} className="cursor-pointer">
               <span className="font-mono text-xs text-muted-foreground">{key}:</span>{' '}
@@ -417,7 +416,11 @@ export function GeneralSettingsDialog({
                 <h3 className="text-sm font-semibold">Configuration Data</h3>
                 <div className="grid gap-4">
                   {Object.entries(settings.schema.properties as Record<string, JsonSchemaProperty>).map(
-                    ([key, property]) => renderField(key, property)
+                    ([key, property]) => (
+                      <div key={key}>
+                        {renderField(key, property)}
+                      </div>
+                    )
                   )}
                 </div>
               </div>

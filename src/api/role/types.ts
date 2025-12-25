@@ -18,13 +18,15 @@ export interface Role {
 }
 
 export interface CreateRoleRequest {
+  roleId: string  // 角色唯一标识
   name: string
   displayName?: string
   description?: string
-  scope: RoleScope
+  scope?: RoleScope
   orgId?: string
   priority?: number
   permissions?: string[]
+  isEnabled?: number  // 0: disabled, 1: enabled
 }
 
 export interface UpdateRoleRequest {

@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { toast } from '@/lib/toast'
@@ -42,7 +42,7 @@ import authStore from '@/store/auth'
 import userStore from '@/store/user'
 import { logout as globalLogout } from '@/lib/auth'
 import { useTheme, type Theme } from '@/hooks/use-theme'
-import { User, Bell, ChevronsUpDown, CreditCard, LogOut, Monitor, Sun, Moon, Upload, SlidersHorizontal } from 'lucide-react'
+import { User, Bell, ChevronsUpDown, LogOut, Monitor, Sun, Moon, Upload, SlidersHorizontal } from 'lucide-react'
 
 const THEMES: Array<{ value: Theme; label: string; icon: React.ReactNode }> = [
   { value: 'system', label: 'System', icon: <Monitor className='h-4 w-4' /> },
@@ -61,7 +61,6 @@ export function NavUser({
 }) {
   const navigate = useNavigate()
   const [user, setUser] = useState(initialUser)
-  const [isLoading, setIsLoading] = useState(false)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
@@ -70,25 +69,26 @@ export function NavUser({
   const { theme, setTheme } = useTheme()
   const { register, handleSubmit, reset } = useForm()
   const fileInputRef = React.useRef<HTMLInputElement>(null)
-  const firstNameInputRef = React.useRef<HTMLInputElement | null>(null)
+  const fullNameInputRef = React.useRef<HTMLInputElement | null>(null)
+
+  // 使用 ref 防止重复请求
+  const hasFetchedRef = useRef(false)
 
   // 初始化用户信息（只在组件首次加载时）
   useEffect(() => {
+    // 防止重复请求（React StrictMode 会执行两次）
+    if (hasFetchedRef.current) {
+      return
+    }
+    hasFetchedRef.current = true
+
     const fetchUserInfo = async () => {
-      // 如果正在加载，跳过
-      if (isLoading) return
-      
       // 先检查 store 中是否已有用户信息
       const storedUserInfo = userStore.getState().userinfo
       if (storedUserInfo) {
         // 使用已存储的用户信息，不再请求 API
         console.log('[NavUser] Using cached user info from store')
-        let displayName = storedUserInfo.username
-        if (storedUserInfo.firstName && storedUserInfo.lastName) {
-          displayName = language === 'zh-CN' 
-            ? `${storedUserInfo.lastName} ${storedUserInfo.firstName}`
-            : `${storedUserInfo.firstName} ${storedUserInfo.lastName}`
-        }
+        const displayName = storedUserInfo.fullName || storedUserInfo.username
         setUser({
           name: displayName,
           email: storedUserInfo.email,
@@ -104,16 +104,9 @@ export function NavUser({
         return
       }
       
-      setIsLoading(true)
       try {
         const userInfo = await Apis.user.getUserInfo()
-        // 根据语言设置调整名字顺序
-        let displayName = userInfo.username
-        if (userInfo.firstName && userInfo.lastName) {
-          displayName = language === 'zh-CN' 
-            ? `${userInfo.lastName} ${userInfo.firstName}`  // 中文：姓 名
-            : `${userInfo.firstName} ${userInfo.lastName}`  // 英文：名 姓
-        }
+        const displayName = userInfo.fullName || userInfo.username
         const newUser = {
           name: displayName,
           email: userInfo.email,
@@ -128,8 +121,6 @@ export function NavUser({
         console.error('Failed to fetch user info:', error)
         // 如果获取失败，使用初始值
         setUser(initialUser)
-      } finally {
-        setIsLoading(false)
       }
     }
 
@@ -137,16 +128,13 @@ export function NavUser({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // 当语言切换时，更新用户名显示顺序
+  // 当语言切换时，更新用户名显示（如果有 fullName）
   useEffect(() => {
     const userInfo = userStore.getState().userinfo
-    if (userInfo && userInfo.firstName && userInfo.lastName) {
-      const displayName = language === 'zh-CN'
-        ? `${userInfo.lastName} ${userInfo.firstName}`  // 中文：姓 名
-        : `${userInfo.firstName} ${userInfo.lastName}`  // 英文：名 姓
+    if (userInfo && userInfo.fullName) {
       setUser((prev) => ({
         ...prev,
-        name: displayName,
+        name: userInfo.fullName || prev.name,
       }))
     }
   }, [language])
@@ -172,20 +160,14 @@ export function NavUser({
 
       // 调用更新用户信息的 API
       const updatedUserInfo = await Apis.user.updateUserInfo(currentUserInfo.userId, {
-        firstName: data.firstName,
-        lastName: data.lastName,
+        fullName: data.fullName,
         email: data.email,
         phone: data.phone,
         avatar: data.avatar,
       })
       
       // 更新本地用户信息
-      let displayName = updatedUserInfo?.username || currentUserInfo.username || user.name
-      if (updatedUserInfo?.firstName && updatedUserInfo?.lastName) {
-        displayName = language === 'zh-CN'
-          ? `${updatedUserInfo.lastName} ${updatedUserInfo.firstName}`  // 中文：姓 名
-          : `${updatedUserInfo.firstName} ${updatedUserInfo.lastName}`  // 英文：名 姓
-      }
+      const displayName = updatedUserInfo?.fullName || updatedUserInfo?.username || currentUserInfo.username || user.name
       setUser({
         name: displayName,
         email: updatedUserInfo?.email || user.email,
@@ -256,8 +238,7 @@ export function NavUser({
       
       // 更新表单中的 avatar 值
       reset({
-        firstName: refreshedUserInfo?.firstName || '',
-        lastName: refreshedUserInfo?.lastName || '',
+        fullName: refreshedUserInfo?.fullName || '',
         email: refreshedUserInfo?.email || user.email,
         phone: refreshedUserInfo?.phone || '',
         avatar: newAvatar,
@@ -278,8 +259,7 @@ export function NavUser({
       const userState = userStore.getState()
       const userInfo = userState.userinfo
       reset({
-        firstName: userInfo?.firstName || '',
-        lastName: userInfo?.lastName || '',
+        fullName: userInfo?.fullName || '',
         email: user.email,
         phone: userInfo?.phone || '',
         avatar: userInfo?.avatar || '',
@@ -287,7 +267,7 @@ export function NavUser({
       setAvatarPreview(userInfo?.avatar || user.avatar || '')
       // 延迟聚焦到第一个输入框，确保 Sheet 动画完成
       setTimeout(() => {
-        firstNameInputRef.current?.focus()
+        fullNameInputRef.current?.focus()
       }, 100)
     } else {
       setAvatarPreview('')
@@ -353,60 +333,19 @@ export function NavUser({
                       className='bg-muted cursor-not-allowed'
                     />
                   </div>
-                  <div className='grid grid-cols-2 gap-4'>
-                    {language === 'zh-CN' ? (
-                      <>
-                        <div className='space-y-2'>
-                          <Label htmlFor='lastName'>姓</Label>
-                          <Input
-                            id='lastName'
-                            {...register('lastName')}
-                            placeholder='请输入姓氏'
-                            disabled={isSaving}
-                          />
-                        </div>
-                        <div className='space-y-2'>
-                          <Label htmlFor='firstName'>名</Label>
-                          <Input
-                            id='firstName'
-                            {...register('firstName')}
-                            ref={(e) => {
-                              const { ref } = register('firstName')
-                              ref(e)
-                              ;(firstNameInputRef as React.MutableRefObject<HTMLInputElement | null>).current = e
-                            }}
-                            placeholder='请输入名字'
-                            disabled={isSaving}
-                          />
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className='space-y-2'>
-                          <Label htmlFor='firstName'>First Name</Label>
-                          <Input
-                            id='firstName'
-                            {...register('firstName')}
-                            ref={(e) => {
-                              const { ref } = register('firstName')
-                              ref(e)
-                              ;(firstNameInputRef as React.MutableRefObject<HTMLInputElement | null>).current = e
-                            }}
-                            placeholder='Enter your first name'
-                            disabled={isSaving}
-                          />
-                        </div>
-                        <div className='space-y-2'>
-                          <Label htmlFor='lastName'>Last Name</Label>
-                          <Input
-                            id='lastName'
-                            {...register('lastName')}
-                            placeholder='Enter your last name'
-                            disabled={isSaving}
-                          />
-                        </div>
-                      </>
-                    )}
+                  <div className='grid gap-3'>
+                    <Label htmlFor='fullName'>Full Name</Label>
+                    <Input
+                      id='fullName'
+                      {...register('fullName')}
+                      ref={(e) => {
+                        const { ref } = register('fullName')
+                        ref(e)
+                        ;(fullNameInputRef as React.MutableRefObject<HTMLInputElement | null>).current = e
+                      }}
+                      placeholder='Enter your full name'
+                      disabled={isSaving}
+                    />
                   </div>
                   <div className='grid gap-3'>
                     <Label htmlFor='email'>Email</Label>
@@ -480,13 +419,9 @@ export function NavUser({
               </form>
             </SheetContent>
           </Sheet>
-          <DropdownMenuItem className='gap-2'>
-            <CreditCard className='h-4 w-4 text-muted-foreground' />
-            Billing
-          </DropdownMenuItem>
-          <DropdownMenuItem className='gap-2'>
+          <DropdownMenuItem className='gap-2' onClick={() => navigate('/inbox')}>
             <Bell className='h-4 w-4 text-muted-foreground' />
-            Notifications
+            System Notifications
           </DropdownMenuItem>
           <DropdownMenuSub>
             <DropdownMenuSubTrigger className='gap-2'>

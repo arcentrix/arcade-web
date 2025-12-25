@@ -7,11 +7,9 @@ import {
   Settings2,
   ChevronRight,
   Sliders,
-  Users,
-  CreditCard,
-  Gauge,
-  Shield,
   KeyRound,
+  Bell,
+  Info,
 } from 'lucide-react';
 
 // 子菜单配置
@@ -24,39 +22,11 @@ const settingsItems = [
     color: 'text-blue-500',
   },
   {
-    title: 'Team',
-    url: '/settings/team',
-    description: 'Manage your team members and permissions',
-    icon: Users,
+    title: 'Notifications',
+    url: '/settings/notifications',
+    description: 'Manage notification channels and templates',
+    icon: Bell,
     color: 'text-green-500',
-  },
-  {
-    title: 'Billing',
-    url: '/settings/billing',
-    description: 'Manage billing information and subscription',
-    icon: CreditCard,
-    color: 'text-purple-500',
-  },
-  {
-    title: 'Limits',
-    url: '/settings/limits',
-    description: 'Configure system limits and quotas',
-    icon: Gauge,
-    color: 'text-orange-500',
-  },
-  {
-    title: 'Users',
-    url: '/users',
-    description: 'Manage user accounts and access control',
-    icon: Users,
-    color: 'text-cyan-500',
-  },
-  {
-    title: 'Roles',
-    url: '/roles',
-    description: 'Configure user roles and permissions',
-    icon: Shield,
-    color: 'text-red-500',
   },
   {
     title: 'Identity',
@@ -64,6 +34,13 @@ const settingsItems = [
     description: 'Configure SSO and identity providers',
     icon: KeyRound,
     color: 'text-indigo-500',
+  },
+  {
+    title: 'System Information',
+    url: '/settings/system-info',
+    description: 'View system version, status, and runtime information',
+    icon: Info,
+    color: 'text-purple-500',
   },
 ];
 

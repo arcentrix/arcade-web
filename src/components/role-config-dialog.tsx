@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, Save, X } from 'lucide-react'
+import { Plus, Save, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from '@/lib/toast'
 import type { Role, RoleScope } from '@/api/role/types'
@@ -45,26 +46,30 @@ export function RoleConfigDialog({ open, onOpenChange, role, onSubmit }: RoleCon
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (role && open) {
-      setFormData({
-        name: role.name,
-        displayName: role.displayName || '',
-        description: role.description || '',
-        scope: role.scope,
-        priority: role.priority,
-        isEnabled: role.isEnabled === 1,
-      })
-      setPermissions(role.permissions || [])
-    } else if (open) {
-      setFormData({
-        name: '',
-        displayName: '',
-        description: '',
-        scope: 'org',
-        priority: 0,
-        isEnabled: true,
-      })
-      setPermissions([])
+    if (open) {
+      if (role) {
+        // 编辑模式：加载角色数据
+        setFormData({
+          name: role.name || '',
+          displayName: role.displayName || '',
+          description: role.description || '',
+          scope: role.scope || 'org',
+          priority: role.priority || 0,
+          isEnabled: role.isEnabled === 1,
+        })
+        setPermissions(role.permissions || [])
+      } else {
+        // 创建模式：重置表单
+        setFormData({
+          name: '',
+          displayName: '',
+          description: '',
+          scope: 'org',
+          priority: 0,
+          isEnabled: true,
+        })
+        setPermissions([])
+      }
     }
   }, [role, open])
 
@@ -161,7 +166,9 @@ export function RoleConfigDialog({ open, onOpenChange, role, onSubmit }: RoleCon
                 disabled={isBuiltin}
               >
                 <SelectTrigger id='scope'>
-                  <SelectValue />
+                  <SelectValue>
+                    {formData.scope === 'org' ? 'Organization' : formData.scope === 'team' ? 'Team' : formData.scope === 'project' ? 'Project' : formData.scope}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value='org'>Organization</SelectItem>
@@ -231,12 +238,10 @@ export function RoleConfigDialog({ open, onOpenChange, role, onSubmit }: RoleCon
           </div>
 
           <div className='flex items-center space-x-2'>
-            <input
-              type='checkbox'
+            <Switch
               id='isEnabled'
               checked={formData.isEnabled}
-              onChange={(e) => setFormData({ ...formData, isEnabled: e.target.checked })}
-              className='h-4 w-4 rounded border-gray-300'
+              onCheckedChange={(checked) => setFormData({ ...formData, isEnabled: checked })}
             />
             <Label htmlFor='isEnabled' className='cursor-pointer'>
               Enable this role

@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from '@/lib/toast'
 import type { IdentityProvider, ProviderType, IdentityProviderConfig } from '@/api/identity/types'
@@ -241,12 +242,10 @@ export function IdentityConfigDialog({ open, onOpenChange, provider, onSubmit }:
           </div>
 
           <div className='flex items-center space-x-2'>
-            <input
-              type='checkbox'
+            <Switch
               id='is_enabled'
               checked={formData.is_enabled}
-              onChange={(e) => setFormData({ ...formData, is_enabled: e.target.checked })}
-              className='h-4 w-4 rounded border-gray-300'
+              onCheckedChange={(checked) => setFormData({ ...formData, is_enabled: checked })}
               disabled={!!provider}
             />
             <Label htmlFor='is_enabled' className={!!provider ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}>

@@ -1,57 +1,66 @@
 /**
- * Models 页面 - 展示所有子菜单卡片
+ * Access 访问控制页面 - 展示所有子菜单卡片
  */
 
 import { Link } from 'react-router-dom';
 import {
-  Bot,
+  Shield,
   ChevronRight,
-  Rabbit,
-  Bird,
-  Turtle,
+  Users,
+  UserCog,
+  UsersRound,
+  Lock,
 } from 'lucide-react';
 
-const modelsItems = [
+// 子菜单配置
+const accessItems = [
   {
-    title: 'Genesis',
-    url: '/models/genesis',
-    description: 'Our fastest model for general use cases',
-    icon: Rabbit,
-    color: 'text-green-500',
-  },
-  {
-    title: 'Explorer',
-    url: '/models/explorer',
-    description: 'Performance and speed for efficiency',
-    icon: Bird,
+    title: 'Users',
+    url: '/users',
+    description: 'Manage user accounts and access control',
+    icon: Users,
     color: 'text-blue-500',
   },
   {
-    title: 'Quantum',
-    url: '/models/quantum',
-    description: 'The most powerful model for complex computations',
-    icon: Turtle,
+    title: 'Roles',
+    url: '/roles',
+    description: 'Configure user roles and permissions',
+    icon: UserCog,
+    color: 'text-green-500',
+  },
+  {
+    title: 'Team',
+    url: '#',
+    description: 'Manage your team members and permissions',
+    icon: UsersRound,
     color: 'text-purple-500',
+  },
+  {
+    title: 'Access Control',
+    url: '#',
+    description: 'Configure access control policies and rules',
+    icon: Lock,
+    color: 'text-orange-500',
   },
 ];
 
-export default function ModelsPage() {
+export default function AccessPage() {
   return (
     <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-            <Bot className="h-8 w-8" />
-            Models
+            <Shield className="h-8 w-8 text-blue-500" />
+            Access
           </h2>
           <p className="text-muted-foreground mt-1">
-            Choose the right AI model for your use case
+            Manage user access, roles, and permissions
           </p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {modelsItems.map((item) => (
+        {accessItems.map((item) => (
           <Link key={item.url} to={item.url} className="group">
             <div className="h-full rounded-2xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-primary/50 cursor-pointer">
               <div className="flex items-start gap-4">

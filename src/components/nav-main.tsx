@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ChevronRight, Search, LayoutDashboard, type LucideIcon } from 'lucide-react'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { cn } from '@/lib/utils'
@@ -74,6 +74,7 @@ function NavItem({
   }
 }) {
   const location = useLocation()
+  const navigate = useNavigate()
   const [isOpen, setIsOpen] = useState(item.isActive || false)
   
   // 只在子项被访问时自动展开（不包括一级菜单自身）
@@ -96,6 +97,23 @@ function NavItem({
 
   // 如果有子菜单且有有效的URL，则分离点击和展开行为
   if (item.items && item.items.length > 0 && item.url && item.url !== '#') {
+    // 检查当前路径是否匹配菜单项或其子项
+    const isCurrentPath = location.pathname === item.url || 
+      item.items.some(subItem => {
+        if (location.pathname === subItem.url) return true
+        if (subItem.items) {
+          return subItem.items.some(child => location.pathname === child.url)
+        }
+        return false
+      })
+    
+    // 如果当前路径匹配，自动展开
+    useEffect(() => {
+      if (isCurrentPath) {
+        setIsOpen(true)
+      }
+    }, [isCurrentPath])
+
     return (
       <li>
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -103,6 +121,17 @@ function NavItem({
             <Link 
               to={item.url} 
               className='flex items-center gap-2 flex-1 overflow-hidden'
+              onClick={(e) => {
+                // 点击菜单项时，如果菜单未展开，则展开它
+                if (!isOpen) {
+                  e.preventDefault()
+                  setIsOpen(true)
+                  // 使用 navigate 延迟导航，让展开动画先执行
+                  setTimeout(() => {
+                    navigate(item.url)
+                  }, 150)
+                }
+              }}
             >
               <item.icon className='h-4 w-4 shrink-0' />
               <div className='flex flex-1 overflow-hidden'>
@@ -114,6 +143,7 @@ function NavItem({
                 className='shrink-0 p-1.5 hover:bg-accent rounded-md cursor-pointer transition-all hover:text-accent-foreground'
                 onClick={(e) => {
                   e.stopPropagation()
+                  setIsOpen(!isOpen)
                 }}
               >
                 <ChevronRight className={cn(
@@ -325,6 +355,7 @@ function SidebarSearch({
     title: string
     teaser: string
     url: string
+    category?: 'workspace' | 'project' | 'documentation'
   }[]
 }) {
   const isMobile = useIsMobile()
@@ -362,29 +393,88 @@ function SidebarSearch({
             <div className='border-b p-2.5'>
               <Input
                 className='h-8 rounded-sm shadow-none focus-visible:ring-0'
-                placeholder='Search...'
+                placeholder='Search projects, workspaces, and docs...'
                 type='search'
               />
             </div>
           </form>
-          <div className='grid gap-1 p-1.5 text-sm'>
-            {results.map((result) => (
+          <div className='grid gap-1 p-1.5 text-sm max-h-[400px] overflow-y-auto'>
+            {(() => {
+              const projectResults = results.filter(r => r.category === 'workspace' || r.category === 'project' || !r.category)
+              const docResults = results.filter(r => r.category === 'documentation')
+              
+              return (
+                <>
+                  {projectResults.length > 0 && (
+                    <>
+                      {projectResults.map((result) => (
+                        result.url.startsWith('http') ? (
               <a
-                className='rounded-md p-2.5 outline-none ring-ring hover:bg-accent hover:text-accent-foreground focus-visible:ring-2'
+                            key={result.title}
+                            className='rounded-md p-2.5 outline-none ring-ring hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 block'
                 href={result.url}
+                            target='_blank'
+                            rel='noopener noreferrer'
+                            onClick={() => setOpen(false)}
+                          >
+                            <div className='font-medium'>{result.title}</div>
+                            <div className='line-clamp-2 text-muted-foreground'>{result.teaser}</div>
+                          </a>
+                        ) : (
+                          <Link
+                            key={result.title}
+                            className='rounded-md p-2.5 outline-none ring-ring hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 block'
+                            to={result.url}
+                            onClick={() => setOpen(false)}
+                          >
+                            <div className='font-medium'>{result.title}</div>
+                            <div className='line-clamp-2 text-muted-foreground'>{result.teaser}</div>
+                          </Link>
+                        )
+                      ))}
+                    </>
+                  )}
+                  {docResults.length > 0 && (
+                    <>
+                      {projectResults.length > 0 && <Separator className='my-1.5' />}
+                      <div className='px-2.5 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
+                        Documentation
+                      </div>
+                      {docResults.map((result) => (
+                        <a
                 key={result.title}
+                          className='rounded-md p-2.5 outline-none ring-ring hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 block'
+                          href={result.url}
+                          target='_blank'
+                          rel='noopener noreferrer'
+                          onClick={() => setOpen(false)}
               >
                 <div className='font-medium'>{result.title}</div>
                 <div className='line-clamp-2 text-muted-foreground'>{result.teaser}</div>
               </a>
             ))}
+                    </>
+                  )}
             <Separator className='my-1.5' />
-            <a
-              className='rounded-md px-2.5 py-1 text-muted-foreground outline-none ring-ring hover:text-foreground focus-visible:ring-2'
-              href='/'
+                  <Link
+                    className='rounded-md px-2.5 py-1 text-muted-foreground outline-none ring-ring hover:text-foreground focus-visible:ring-2 block'
+                    to='/projects'
+                    onClick={() => setOpen(false)}
             >
-              See all results
-            </a>
+                    See all projects
+                  </Link>
+                  <a
+                    className='rounded-md px-2.5 py-1 text-muted-foreground outline-none ring-ring hover:text-foreground focus-visible:ring-2 block'
+                    href='https://docs.go-arcade.io/'
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    onClick={() => setOpen(false)}
+                  >
+                    Browse all documentation
+                  </a>
+                </>
+              )
+            })()}
           </div>
         </DrawerContent>
       </Drawer>
@@ -407,27 +497,86 @@ function SidebarSearch({
       <PopoverContent align='start' className='w-96 p-0' side='right' sideOffset={4}>
         <form>
           <div className='border-b p-2.5'>
-            <Input className='h-8 rounded-sm shadow-none focus-visible:ring-0' placeholder='Search...' type='search' />
+            <Input className='h-8 rounded-sm shadow-none focus-visible:ring-0' placeholder='Search projects, workspaces, and docs...' type='search' />
           </div>
         </form>
-        <div className='grid gap-1 p-1.5 text-sm'>
-          {results.map((result) => (
+        <div className='grid gap-1 p-1.5 text-sm max-h-[400px] overflow-y-auto'>
+          {(() => {
+            const projectResults = results.filter(r => r.category === 'workspace' || r.category === 'project' || !r.category)
+            const docResults = results.filter(r => r.category === 'documentation')
+            
+            return (
+              <>
+                {projectResults.length > 0 && (
+                  <>
+                    {projectResults.map((result) => (
+                      result.url.startsWith('http') ? (
             <a
-              className='rounded-md p-2.5 outline-none ring-ring hover:bg-accent hover:text-accent-foreground focus-visible:ring-2'
+                          key={result.title}
+                          className='rounded-md p-2.5 outline-none ring-ring hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 block'
               href={result.url}
+                          target='_blank'
+                          rel='noopener noreferrer'
+                          onClick={() => setOpen(false)}
+                        >
+                          <div className='font-medium'>{result.title}</div>
+                          <div className='line-clamp-2 text-muted-foreground'>{result.teaser}</div>
+                        </a>
+                      ) : (
+                        <Link
+                          key={result.title}
+                          className='rounded-md p-2.5 outline-none ring-ring hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 block'
+                          to={result.url}
+                          onClick={() => setOpen(false)}
+                        >
+                          <div className='font-medium'>{result.title}</div>
+                          <div className='line-clamp-2 text-muted-foreground'>{result.teaser}</div>
+                        </Link>
+                      )
+                    ))}
+                  </>
+                )}
+                {docResults.length > 0 && (
+                  <>
+                    {projectResults.length > 0 && <Separator className='my-1.5' />}
+                    <div className='px-2.5 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
+                      Documentation
+                    </div>
+                    {docResults.map((result) => (
+                      <a
               key={result.title}
+                        className='rounded-md p-2.5 outline-none ring-ring hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 block'
+                        href={result.url}
+                        target='_blank'
+                        rel='noopener noreferrer'
+                        onClick={() => setOpen(false)}
             >
               <div className='font-medium'>{result.title}</div>
               <div className='line-clamp-2 text-muted-foreground'>{result.teaser}</div>
             </a>
           ))}
+                  </>
+                )}
           <Separator className='my-1.5' />
-          <a
-            className='rounded-md px-2.5 py-1 text-muted-foreground outline-none ring-ring hover:text-foreground focus-visible:ring-2'
-            href='/'
+                <Link
+                  className='rounded-md px-2.5 py-1 text-muted-foreground outline-none ring-ring hover:text-foreground focus-visible:ring-2 block'
+                  to='/projects'
+                  onClick={() => setOpen(false)}
           >
-            See all results
-          </a>
+                  See all projects
+                </Link>
+                <a
+                  className='rounded-md px-2.5 py-1 text-muted-foreground outline-none ring-ring hover:text-foreground focus-visible:ring-2 block'
+                  href='https://docs.go-arcade.io/'
+                  target='_blank'
+                  rel='noopener noreferrer'
+                  onClick={() => setOpen(false)}
+                >
+                  Browse all documentation
+                </a>
+              </>
+            )
+          })()}
         </div>
       </PopoverContent>
     </Popover>

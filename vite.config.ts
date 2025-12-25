@@ -27,8 +27,34 @@ export default defineConfig(({ command, mode }) => {
     server: {
       port: 5173,
       proxy: {
+        // /version 接口特殊处理，直接代理到后端根路径
+        '/api/version': {
+          target: process.env.VITE_API_URL || 'http://127.0.0.1:8080',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api/, ''), // 将 /api/version 重写为 /version
+        },
+        // SSE 日志流接口特殊处理，需要保持连接打开
+        '/api/v1/pipelines/logs/stream': {
+          target: process.env.VITE_API_URL || 'http://127.0.0.1:8080',
+          changeOrigin: true,
+          ws: false, // SSE 不是 WebSocket
+          configure: (proxy, _options) => {
+            proxy.on('proxyReq', (proxyReq, req, res) => {
+              // 设置 SSE 相关 headers
+              proxyReq.setHeader('Accept', 'text/event-stream');
+              proxyReq.setHeader('Cache-Control', 'no-cache');
+              proxyReq.setHeader('Connection', 'keep-alive');
+            });
+            proxy.on('proxyRes', (proxyRes, req, res) => {
+              // 确保响应头正确设置
+              proxyRes.headers['content-type'] = 'text/event-stream';
+              proxyRes.headers['cache-control'] = 'no-cache';
+              proxyRes.headers['connection'] = 'keep-alive';
+            });
+          },
+        },
         '/api': {
-          target: process.env.VITE_API_URL || 'http://localhost:8080',
+          target: process.env.VITE_API_URL || 'http://127.0.0.1:8080',
           changeOrigin: true,
         },
       },

@@ -1,13 +1,15 @@
-import { MoreHorizontal, PlusSquare, type LucideIcon } from 'lucide-react'
+import { useState } from 'react'
+import { MoreHorizontal, type LucideIcon } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { ShareDialog } from '@/components/share-dialog'
 
 export function NavProjects({
   projects,
@@ -19,6 +21,21 @@ export function NavProjects({
     icon: LucideIcon
   }[]
 } & React.ComponentProps<'ul'>) {
+  const navigate = useNavigate()
+  const [shareDialogOpen, setShareDialogOpen] = useState<Record<string, boolean>>({})
+
+  const handleNew = (workspaceName: string) => {
+    navigate(`/workspace/${encodeURIComponent(workspaceName)}/chat`)
+  }
+
+  const handleHistory = (workspaceName: string) => {
+    navigate(`/workspace/${encodeURIComponent(workspaceName)}/history`)
+  }
+
+  const handleShare = (workspaceName: string) => {
+    setShareDialogOpen(prev => ({ ...prev, [workspaceName]: true }))
+  }
+
   return (
     <ul className={cn('grid gap-0.5', className)}>
       {projects.map((item) => (
@@ -44,23 +61,24 @@ export function NavProjects({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align='start' side='right' sideOffset={20}>
-              <DropdownMenuItem>Share</DropdownMenuItem>
-              <DropdownMenuItem>Rename</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>Archive</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleNew(item.name)}>
+                New
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleShare(item.name)}>
+                Share
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleHistory(item.name)}>
+                Historys
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          <ShareDialog
+            workspaceName={item.name}
+            open={shareDialogOpen[item.name] || false}
+            onOpenChange={(open) => setShareDialogOpen(prev => ({ ...prev, [item.name]: open }))}
+          />
         </li>
       ))}
-      <li>
-        <button
-          className='flex h-7 w-full items-center gap-2.5 overflow-hidden rounded-md px-1.5 text-left text-xs ring-ring transition-all hover:bg-muted focus-visible:outline-none focus-visible:ring-2'
-          type='button'
-        >
-          <PlusSquare className='h-4 w-4 shrink-0 translate-x-0.5 text-muted-foreground' />
-          <div className='line-clamp-1 overflow-hidden font-medium text-muted-foreground'>Add Project</div>
-        </button>
-      </li>
     </ul>
   )
 }

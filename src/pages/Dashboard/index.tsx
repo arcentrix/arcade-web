@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import type { FC } from 'react'
 import {
   Activity,
@@ -19,10 +20,28 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Apis } from '@/api'
 
 interface DashboardProps {}
 
 const Dashboard: FC<DashboardProps> = () => {
+  const [agentStats, setAgentStats] = useState<{ total: number; online: number; offline: number } | null>(null)
+  const [loadingStats, setLoadingStats] = useState(true)
+
+  useEffect(() => {
+    const loadAgentStatistics = async () => {
+      try {
+        const stats = await Apis.agent.getAgentStatistics()
+        setAgentStats(stats)
+      } catch (error) {
+        console.error('Failed to load agent statistics:', error)
+      } finally {
+        setLoadingStats(false)
+      }
+    }
+
+    loadAgentStatistics()
+  }, [])
   return (
     <section className='flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8'>
             {/* 标题和操作按钮 */}
@@ -141,8 +160,22 @@ const Dashboard: FC<DashboardProps> = () => {
                   <Server className='h-4 w-4 text-green-500' />
                 </CardHeader>
                 <CardContent>
-                  <div className='text-2xl font-bold'>8 / 10</div>
-                  <p className='text-xs text-muted-foreground'>80% capacity available</p>
+                  {loadingStats ? (
+                    <div className='text-2xl font-bold'>Loading...</div>
+                  ) : agentStats ? (
+                    <>
+                      <div className='text-2xl font-bold'>
+                        {agentStats.online} / {agentStats.total}
+                      </div>
+                      <p className='text-xs text-muted-foreground'>
+                        {agentStats.total > 0
+                          ? `${Math.round((agentStats.online / agentStats.total) * 100)}% capacity available`
+                          : 'No agents'}
+                      </p>
+                    </>
+                  ) : (
+                    <div className='text-2xl font-bold'>--</div>
+                  )}
                 </CardContent>
               </Card>
 

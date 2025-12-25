@@ -4,8 +4,7 @@
 export interface UserInfo {
   avatar: string
   email: string
-  firstName: string
-  lastName: string
+  fullName: string
   phone: string
   userId: string
   username: string

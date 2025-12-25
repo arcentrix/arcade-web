@@ -6,6 +6,8 @@ import identity_integration from './identity'
 import user_management from './user-management'
 import role from './role'
 import * as general_settings from './general-settings'
+import agent from './agent'
+import plugin from './plugin'
 
 export const Apis = {
   auth,
@@ -16,4 +18,6 @@ export const Apis = {
   user_management,
   role,
   general_settings,
+  agent,
+  plugin,
 }

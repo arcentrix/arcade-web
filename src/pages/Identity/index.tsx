@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { Plus, Edit, Trash2, Power, PowerOff, Shield, Search } from 'lucide-react'
+import { Plus, Edit, Trash2, Power, PowerOff, Shield, Search, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -19,6 +19,8 @@ export default function IdentityPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<string>('all')
   const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [pageNum, setPageNum] = useState(1)
+  const [pageSize] = useState(10)
   const hasFetchedRef = useRef(false)
 
   useEffect(() => {
@@ -132,6 +134,18 @@ export default function IdentityPage() {
     })
   }, [providers, filterType, filterStatus, searchTerm])
 
+  // 分页计算
+  const totalPages = Math.ceil(filteredProviders.length / pageSize)
+  const paginatedProviders = useMemo(() => {
+    const startIndex = (pageNum - 1) * pageSize
+    return filteredProviders.slice(startIndex, startIndex + pageSize)
+  }, [filteredProviders, pageNum, pageSize])
+
+  // 当筛选条件变化时，重置到第一页
+  useEffect(() => {
+    setPageNum(1)
+  }, [searchTerm, filterType, filterStatus])
+
   const getProviderTypeBadge = (type: string) => {
     const variants: Record<string, { label: string; className: string }> = {
       oauth: { label: 'OAuth 2.0', className: 'bg-sky-50 text-sky-600 border border-sky-200' },
@@ -231,6 +245,7 @@ export default function IdentityPage() {
                     )}
                   </div>
                 ) : (
+                  <>
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -243,7 +258,7 @@ export default function IdentityPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredProviders.map((provider) => (
+                      {paginatedProviders.map((provider) => (
                         <TableRow key={provider.id}>
                           <TableCell className='font-medium'>{provider.name}</TableCell>
                           <TableCell>{getProviderTypeBadge(provider.providerType)}</TableCell>
@@ -292,6 +307,40 @@ export default function IdentityPage() {
                       ))}
                     </TableBody>
                   </Table>
+                  
+                  {/* 分页控件 */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                      <div className="text-sm text-muted-foreground">
+                        Showing {((pageNum - 1) * pageSize) + 1} to {Math.min(pageNum * pageSize, filteredProviders.length)} of{' '}
+                        {filteredProviders.length} providers
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setPageNum((p) => Math.max(1, p - 1))}
+                          disabled={pageNum === 1}
+                        >
+                          <ChevronLeft className="h-4 w-4 mr-1" />
+                          Previous
+                        </Button>
+                        <div className="text-sm">
+                          Page {pageNum} of {totalPages}
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setPageNum((p) => Math.min(totalPages, p + 1))}
+                          disabled={pageNum === totalPages}
+                        >
+                          Next
+                          <ChevronRight className="h-4 w-4 ml-1" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  </>
                 )}
               </CardContent>
             </Card>

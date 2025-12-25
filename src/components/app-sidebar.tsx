@@ -1,18 +1,14 @@
 import {
-  Bird,
-  BookOpen,
-  Bot,
-  Code2,
   Eclipse,
   Frame,
-  History,
   LifeBuoy,
   Map,
   Rabbit,
   Settings2,
-  SquareTerminal,
-  Star,
-  Turtle,
+  Zap,
+  BookOpen,
+  Brain,
+  Shield,
 } from 'lucide-react'
 import { NavMain } from '@/components/nav-main'
 import { NavProjects } from '@/components/nav-projects'
@@ -59,103 +55,48 @@ export function AppSidebar() {
     },
     navMain: [
       {
-        title: 'Playground',
-        url: '/playground',
-        icon: SquareTerminal,
-        isActive: true,
+        title: 'Projects',
+        url: '/projects',
+        icon: Frame,
         items: [
           {
-            title: 'History',
-            url: '#',
-            icon: History,
-            description: 'View your recent prompts',
-          },
-          {
-            title: 'Starred',
-            url: '#',
-            icon: Star,
-            description: 'Browse your starred prompts',
-          },
-          {
-            title: 'Settings',
-            url: '#',
-            icon: Settings2,
-            description: 'Configure your playground',
+            title: 'Overview',
+            url: '/projects',
           },
         ],
       },
       {
-        title: 'Models',
-        url: '/models',
-        icon: Bot,
+        title: 'Agents',
+        url: '/agents',
+        icon: Zap,
         items: [
           {
-            title: 'Genesis',
-            url: '#',
-            icon: Rabbit,
-            description: 'Our fastest model for general use cases.',
-          },
-          {
-            title: 'Explorer',
-            url: '#',
-            icon: Bird,
-            description: 'Performance and speed for efficiency.',
-          },
-          {
-            title: 'Quantum',
-            url: '#',
-            icon: Turtle,
-            description: 'The most powerful model for complex computations.',
+            title: 'Overview',
+            url: '/agents',
           },
         ],
       },
       {
-        title: 'Documentation',
-        url: '/documentation',
-        icon: BookOpen,
+        title: 'Access',
+        url: '/access',
+        icon: Shield,
         items: [
           {
-            title: 'Introduction',
+            title: 'Users',
+            url: '/users',
+          },
+          {
+            title: 'Roles',
+            url: '/roles',
+          },
+          {
+            title: 'Team',
             url: '#',
           },
           {
-            title: 'Get Started',
+            title: 'Access Control',
             url: '#',
-          },
-          {
-            title: 'Tutorials',
-            url: '#',
-          },
-          {
-            title: 'Changelog',
-            url: '#',
-          },
-        ],
-      },
-      {
-        title: 'API',
-        url: '/api',
-        icon: Code2,
-        items: [
-          {
-            title: 'Chat',
-            url: '#',
-          },
-          {
-            title: 'Completion',
-            url: '#',
-          },
-          {
-            title: 'Images',
-            url: '#',
-          },
-          {
-            title: 'Video',
-            url: '#',
-          },
-          {
-            title: 'Speech',
-            url: '#',
+            items: [],
           },
         ],
       },
@@ -169,34 +110,16 @@ export function AppSidebar() {
             url: '/general-settings',
           },
           {
-            title: 'Team',
-            url: '#',
-          },
-          {
-            title: 'Billing',
-            url: '#',
-          },
-          {
-            title: 'Limits',
-            url: '#',
-          },
-          {
-            title: 'Access Control',
-            url: '#',
-            items: [
-              {
-                title: 'Users',
-                url: '/users',
-              },
-              {
-                title: 'Roles',
-                url: '/roles',
-              },
-            ],
+            title: 'Notifications',
+            url: '/settings/notifications',
           },
           {
             title: 'Identity',
             url: '/identity-integration',
+          },
+          {
+            title: 'System Information',
+            url: '/settings/system-info',
           },
         ],
       },
@@ -210,52 +133,76 @@ export function AppSidebar() {
       },
       {
         title: 'Documentation',
-        url: 'https://docs.go-arcade.io',
+        url: 'https://docs.go-arcade.io/',
         icon: BookOpen,
       },
     ],
     projects: [
       {
-        name: 'Design Engineering',
+        name: 'ML Model Training',
         url: '#',
-        icon: Frame,
+        icon: Brain,
       },
       {
-        name: 'Travel',
+        name: 'Data Pipeline',
         url: '#',
         icon: Map,
       },
     ],
     searchResults: [
       {
-        title: 'Routing Fundamentals',
-        teaser:
-          'The skeleton of every application is routing. This page will introduce you to the fundamental concepts of routing for the web and how to handle routing in Next.js.',
-        url: '#',
+        title: 'ML Model Training',
+        teaser: 'AI workspace for machine learning model training and conversations',
+        url: '/workspace/ML Model Training/chat',
+        category: 'workspace' as const,
       },
       {
-        title: 'Layouts and Templates',
-        teaser:
-          'The special files layout.js and template.js allow you to create UI that is shared between routes. This page will guide you through how and when to use these special files.',
-        url: '#',
+        title: 'Projects Overview',
+        teaser: 'View and manage all your projects',
+        url: '/projects',
+        category: 'project' as const,
       },
       {
-        title: 'Data Fetching, Caching, and Revalidating',
-        teaser:
-          'Data fetching is a core part of any application. This page goes through how you can fetch, cache, and revalidate data in React and Next.js.',
-        url: '#',
+        title: 'Agents',
+        teaser: 'Manage and configure AI agents',
+        url: '/agents',
+        category: 'project' as const,
       },
       {
-        title: 'Server and Client Composition Patterns',
-        teaser:
-          'When building React applications, you will need to consider what parts of your application should be rendered on the server or the client. ',
-        url: '#',
+        title: 'Settings',
+        teaser: 'Configure application settings and preferences',
+        url: '/settings',
+        category: 'project' as const,
       },
       {
-        title: 'Server Actions and Mutations',
-        teaser:
-          'Server Actions are asynchronous functions that are executed on the server. They can be used in Server and Client Components to handle form submissions and data mutations in Next.js applications.',
-        url: '#',
+        title: 'Getting Started',
+        teaser: 'Learn how to get started with Arcade platform',
+        url: 'https://docs.go-arcade.io/getting-started',
+        category: 'documentation' as const,
+      },
+      {
+        title: 'Pipeline Configuration',
+        teaser: 'Guide on how to configure and manage pipelines',
+        url: 'https://docs.go-arcade.io/pipelines/configuration',
+        category: 'documentation' as const,
+      },
+      {
+        title: 'Agent Management',
+        teaser: 'Documentation on creating and managing AI agents',
+        url: 'https://docs.go-arcade.io/agents/management',
+        category: 'documentation' as const,
+      },
+      {
+        title: 'API Reference',
+        teaser: 'Complete API reference for Arcade platform',
+        url: 'https://docs.go-arcade.io/api/reference',
+        category: 'documentation' as const,
+      },
+      {
+        title: 'Deployment Guide',
+        teaser: 'Step-by-step guide for deploying applications',
+        url: 'https://docs.go-arcade.io/deployment/guide',
+        category: 'documentation' as const,
       },
     ],
   }
@@ -271,13 +218,36 @@ export function AppSidebar() {
           <NavMain items={data.navMain} searchResults={data.searchResults} dashboardUrl='/' />
         </SidebarItem>
         <SidebarItem>
-          <SidebarLabel>Projects</SidebarLabel>
+          <SidebarLabel>LLM Dialogue</SidebarLabel>
           <NavProjects projects={data.projects} />
         </SidebarItem>
         <SidebarItem className='mt-auto'>
           <SidebarLabel>Help</SidebarLabel>
-          <NavSecondary items={data.navSecondary} />
+          {/* Slack */}
+          <a
+            href='https://app.slack.com/client/T07MSU3LJB0/C0A5LSRLNC8'
+            target='_blank'
+            rel='noopener noreferrer'
+            className='flex h-7 w-full items-center gap-2.5 overflow-hidden rounded-md px-1.5 text-xs ring-ring transition-all hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 cursor-pointer'
+          >
+            <svg
+              xmlns='http://www.w3.org/2000/svg'
+              viewBox='0 0 24 24'
+              className='h-4 w-4 shrink-0 translate-x-0.5 text-muted-foreground'
+            >
+              <path
+                d='M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z'
+                fill='#E01E5A'
+              />
+            </svg>
+            <span className='line-clamp-1 font-medium text-muted-foreground'>Slack</span>
+          </a>
+          {/* Support */}
+          <NavSecondary items={[data.navSecondary[0]]} />
+          {/* Report a Bug */}
           <BugReportDialog />
+          {/* Documentation */}
+          <NavSecondary items={[data.navSecondary[1]]} />
         </SidebarItem>
       </SidebarContent>
       <SidebarFooter>

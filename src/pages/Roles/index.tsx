@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { Plus, Edit, Trash2, Shield, Search, Power, PowerOff, Crown, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Edit, Trash2, Shield, Search, Power, PowerOff, Crown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { RoleConfigDialog } from '@/components/role-config-dialog'
+import { DataTablePagination } from '@/components/data-table-pagination'
 import { toast } from '@/lib/toast'
 import type { Role, CreateRoleRequest, UpdateRoleRequest } from '@/api/role/types'
 import { Apis } from '@/api'
@@ -20,39 +21,66 @@ export default function RolesPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterScope, setFilterScope] = useState<string>('all')
   const [filterStatus, setFilterStatus] = useState<string>('all')
-  const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(10)
-  const [total, setTotal] = useState(0)
-  const hasFetchedRef = useRef(false)
+  const [pageNum, setPageNum] = useState(1)
+  const [pageSize] = useState(10)
+  const [totalCount, setTotalCount] = useState(0)
+  const loadingRef = useRef(false)
+  const paramsRef = useRef<string>('')
 
+  // 当搜索或筛选条件变化时，重置到第一页
   useEffect(() => {
-    if (!hasFetchedRef.current) {
-      hasFetchedRef.current = true
-      loadRoles()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    setPageNum(1)
+  }, [searchTerm, filterScope, filterStatus])
 
-  const loadRoles = async () => {
+  // 统一的数据加载逻辑：当页码、搜索条件或筛选条件变化时加载
+  useEffect(() => {
+    // 如果有搜索或筛选条件，加载所有数据（使用较大的 pageSize）用于前端筛选
+    // 否则使用正常的分页
+    const params = searchTerm || filterScope !== 'all' || filterStatus !== 'all'
+      ? { pageNum: 1, pageSize: 1000 } // 加载足够多的数据用于前端筛选
+      : { pageNum, pageSize }
+    
+    // 生成参数的唯一标识，用于防止重复请求
+    const paramsKey = JSON.stringify({ ...params, filterScope: filterScope !== 'all' ? filterScope : undefined })
+    
+    // 防止重复请求：如果正在加载或参数没有变化，则跳过
+    if (loadingRef.current || paramsRef.current === paramsKey) {
+      return
+    }
+
+    loadingRef.current = true
+    paramsRef.current = paramsKey
     setLoading(true)
-    try {
-      const response = await Apis.role.listRoles(currentPage, pageSize, filterScope !== 'all' ? filterScope : undefined)
-      setRoles(response.roles.sort((a, b) => b.priority - a.priority))
-      setTotal(response.total)
-    } catch (error) {
-      toast.error('Failed to load roles')
-      console.error('Load failed:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+    
+    Apis.role.listRoles(params.pageNum, params.pageSize, filterScope !== 'all' ? filterScope : undefined)
+      .then((response) => {
+        // 确保参数仍然匹配（防止快速切换导致的状态混乱）
+        if (paramsRef.current === paramsKey) {
+          setRoles(response.roles.sort((a, b) => b.priority - a.priority))
+          setTotalCount(response.total)
+        }
+      })
+      .catch((error) => {
+        if (paramsRef.current === paramsKey) {
+          toast.error('Failed to load roles')
+          console.error('Load failed:', error)
+        }
+      })
+      .finally(() => {
+        if (paramsRef.current === paramsKey) {
+          setLoading(false)
+          loadingRef.current = false
+        }
+      })
 
-  useEffect(() => {
-    if (hasFetchedRef.current) {
-      loadRoles()
+    // 清理函数：当参数变化时，取消之前的请求
+    return () => {
+      if (paramsRef.current !== paramsKey) {
+        loadingRef.current = false
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, pageSize])
+  }, [pageNum, pageSize, searchTerm, filterScope, filterStatus])
 
   const handleCreate = () => {
     setSelectedRole(null)
@@ -61,22 +89,83 @@ export default function RolesPage() {
 
   const handleEdit = async (role: Role) => {
     try {
-      const fullRole = await Apis.role.getRole(role.roleId)
-      setSelectedRole(fullRole)
+      // 先设置选中角色并打开对话框，使用列表中的角色数据
+      setSelectedRole(role)
       setDialogOpen(true)
+      
+      // 然后异步加载完整角色详情
+      try {
+        const fullRole = await Apis.role.getRole(role.roleId)
+        setSelectedRole(fullRole)
+      } catch (error) {
+        console.warn('Failed to load full role details, using list data:', error)
+        // 如果加载失败，继续使用列表中的角色数据
+      }
     } catch (error) {
-      toast.error('Failed to load role details')
-      console.error('Load role failed:', error)
+      toast.error('Failed to open edit dialog')
+      console.error('Edit failed:', error)
+    }
+  }
+
+  const reloadRoles = async () => {
+    // 重置 ref 以允许重新加载
+    const oldParamsKey = paramsRef.current
+    paramsRef.current = ''
+    loadingRef.current = false
+    
+    // 触发重新加载（通过触发 useEffect）
+    const params = searchTerm || filterScope !== 'all' || filterStatus !== 'all'
+      ? { pageNum: 1, pageSize: 1000 }
+      : { pageNum, pageSize }
+    
+    const paramsKey = JSON.stringify({ ...params, filterScope: filterScope !== 'all' ? filterScope : undefined })
+    
+    // 如果参数没有变化，不需要重新加载
+    if (oldParamsKey === paramsKey) {
+      return
+    }
+    
+    loadingRef.current = true
+    paramsRef.current = paramsKey
+    setLoading(true)
+    
+    try {
+      const response = await Apis.role.listRoles(params.pageNum, params.pageSize, filterScope !== 'all' ? filterScope : undefined)
+      if (paramsRef.current === paramsKey) {
+        setRoles(response.roles.sort((a, b) => b.priority - a.priority))
+        setTotalCount(response.total)
+      }
+    } catch (error) {
+      if (paramsRef.current === paramsKey) {
+        toast.error('Failed to reload roles')
+        console.error('Reload failed:', error)
+        // 确保即使出错也设置 loading 为 false，避免页面一直显示加载状态
+        setLoading(false)
+      }
+    } finally {
+      if (paramsRef.current === paramsKey) {
+        setLoading(false)
+        loadingRef.current = false
+      }
     }
   }
 
   const handleSubmit = async (data: CreateRoleRequest | UpdateRoleRequest) => {
-    if (selectedRole) {
-      await Apis.role.updateRole(selectedRole.roleId, data as UpdateRoleRequest)
-    } else {
-      await Apis.role.createRole(data as CreateRoleRequest)
+    try {
+      if (selectedRole) {
+        await Apis.role.updateRole(selectedRole.roleId, data as UpdateRoleRequest)
+      } else {
+        await Apis.role.createRole(data as CreateRoleRequest)
+      }
+      // 关闭对话框
+      setDialogOpen(false)
+      setSelectedRole(null)
+      // 重新加载数据
+      await reloadRoles()
+    } catch (error) {
+      // 错误已经在 API 调用中处理，这里不需要额外处理
+      throw error
     }
-    await loadRoles()
   }
 
   const handleDelete = async (roleId: string) => {
@@ -87,7 +176,7 @@ export default function RolesPage() {
     try {
       await Apis.role.deleteRole(roleId)
       toast.success('Role deleted successfully')
-      await loadRoles()
+      await reloadRoles()
     } catch (error) {
       toast.error('Failed to delete role')
       console.error('Delete failed:', error)
@@ -98,7 +187,7 @@ export default function RolesPage() {
     try {
       await Apis.role.toggleRole(role.roleId)
       toast.success(role.isEnabled === 1 ? 'Role disabled' : 'Role enabled')
-      await loadRoles()
+      await reloadRoles()
     } catch (error) {
       toast.error('Failed to toggle role status')
       console.error('Toggle failed:', error)
@@ -107,11 +196,17 @@ export default function RolesPage() {
 
   // 获取所有唯一的 scope 值
   const availableScopes = useMemo(() => {
-    const scopes = Array.from(new Set(roles.map((role) => role.scope)))
+    const scopes = Array.from(
+      new Set(
+        roles
+          .map((role) => role.scope)
+          .filter((scope) => Boolean(scope)) // 过滤掉 undefined/null/空字符串
+      )
+    ) as string[]
     return scopes.sort()
   }, [roles])
 
-  // 筛选逻辑
+  // 过滤和搜索
   const filteredRoles = useMemo(() => {
     return roles.filter((role) => {
       // 按作用域筛选
@@ -141,8 +236,27 @@ export default function RolesPage() {
     })
   }, [roles, filterScope, filterStatus, searchTerm])
 
-  const getScopeBadge = (scope: string) => {
+  // 如果有搜索或筛选条件，使用前端筛选后的结果进行分页
+  // 否则使用服务端分页
+  const hasFilters = searchTerm || filterScope !== 'all' || filterStatus !== 'all'
+  const totalPages = hasFilters 
+    ? Math.ceil(filteredRoles.length / pageSize)
+    : Math.ceil(totalCount / pageSize)
+  
+  // 如果有筛选条件，使用前端分页；否则使用服务端分页
+  const displayRoles = hasFilters 
+    ? filteredRoles.slice((pageNum - 1) * pageSize, pageNum * pageSize)
+    : filteredRoles
+
+  const getScopeBadge = (scope: string | undefined) => {
     // 统一使用低饱和灰调
+    if (!scope) {
+      return (
+        <Badge variant='outline' className='bg-gray-50 text-gray-600 border border-gray-200'>
+          Unknown
+        </Badge>
+      )
+    }
     return (
       <Badge variant='outline' className='bg-gray-50 text-gray-600 border border-gray-200'>
         {scope}
@@ -151,12 +265,15 @@ export default function RolesPage() {
   }
 
   const getScopeLabel = (scope: string) => {
+    if (!scope) {
+      return 'Unknown'
+    }
     const labels: Record<string, string> = {
       org: 'Organization',
       team: 'Team',
       project: 'Project',
     }
-    return labels[scope] || scope.charAt(0).toUpperCase() + scope.slice(1)
+    return labels[scope] || (scope.charAt(0).toUpperCase() + scope.slice(1))
   }
 
   return (
@@ -202,8 +319,8 @@ export default function RolesPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value='all'>All Scopes</SelectItem>
-                  {availableScopes.map((scope) => (
-                    <SelectItem key={scope} value={scope}>
+                  {availableScopes.map((scope, idx) => (
+                    <SelectItem key={`scope-${scope}-${idx}`} value={scope}>
                       {getScopeLabel(scope)}
                     </SelectItem>
                   ))}
@@ -226,7 +343,7 @@ export default function RolesPage() {
               <div className='flex items-center justify-center py-8'>
                 <p className='text-muted-foreground'>Loading...</p>
               </div>
-            ) : filteredRoles.length === 0 ? (
+            ) : displayRoles.length === 0 ? (
               <div className='flex flex-col items-center justify-center py-12'>
                 <Shield className='h-12 w-12 text-muted-foreground mb-4' />
                 <p className='text-muted-foreground mb-4'>
@@ -265,7 +382,7 @@ export default function RolesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredRoles.map((role) => (
+                  {displayRoles.map((role) => (
                     <TableRow key={role.id}>
                       <TableCell>
                         <div>
@@ -320,7 +437,7 @@ export default function RolesPage() {
                                 <div className='max-h-60 overflow-y-auto'>
                                   <div className='flex flex-wrap gap-1.5'>
                                     {role.permissions.map((permission, idx) => (
-                                      <Badge key={idx} variant='secondary' className='text-xs'>
+                                      <Badge key={`${role.roleId}-${permission}-${idx}`} variant='secondary' className='text-xs'>
                                         {permission}
                                       </Badge>
                                     ))}
@@ -370,48 +487,17 @@ export default function RolesPage() {
 
             {/* 分页控件 */}
             {!loading && filteredRoles.length > 0 && (
-              <div className='flex items-center justify-between pt-4 border-t'>
-                <div className='flex items-center gap-2'>
-                  <span className='text-sm text-muted-foreground'>Rows per page:</span>
-                  <Select value={pageSize.toString()} onValueChange={(value) => {
-                    setPageSize(parseInt(value))
-                    setCurrentPage(1)
-                  }}>
-                    <SelectTrigger className='w-[80px]'>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value='10'>10</SelectItem>
-                      <SelectItem value='20'>20</SelectItem>
-                      <SelectItem value='50'>50</SelectItem>
-                      <SelectItem value='100'>100</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className='flex items-center gap-4'>
-                  <span className='text-sm text-muted-foreground'>
-                    {(currentPage - 1) * pageSize + 1}-{Math.min(currentPage * pageSize, total)} of {total}
-                  </span>
-                  <div className='flex items-center gap-1'>
-                    <Button
-                      variant='outline'
-                      size='sm'
-                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                      disabled={currentPage === 1}
-                    >
-                      <ChevronLeft className='h-4 w-4' />
-                    </Button>
-                    <Button
-                      variant='outline'
-                      size='sm'
-                      onClick={() => setCurrentPage((p) => Math.min(Math.ceil(total / pageSize), p + 1))}
-                      disabled={currentPage >= Math.ceil(total / pageSize)}
-                    >
-                      <ChevronRight className='h-4 w-4' />
-                    </Button>
+              <div className='pt-4 border-t'>
+                {totalPages > 1 && (
+                  <div className="mt-4 pt-4 border-t">
+                    <DataTablePagination
+                      page={pageNum}
+                      pageSize={pageSize}
+                      total={hasFilters ? filteredRoles.length : totalCount}
+                      onPageChange={setPageNum}
+                    />
                   </div>
-                </div>
+                )}
               </div>
             )}
           </CardContent>
@@ -419,9 +505,15 @@ export default function RolesPage() {
       </section>
 
       <RoleConfigDialog
-        key={selectedRole?.id || 'new'}
+        key={selectedRole?.roleId || 'new'}
         open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open)
+          if (!open) {
+            // 关闭对话框时重置选中角色
+            setSelectedRole(null)
+          }
+        }}
         role={selectedRole}
         onSubmit={handleSubmit}
       />
