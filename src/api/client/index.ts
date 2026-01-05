@@ -5,8 +5,41 @@ import { isDev } from '@/lib/is'
 import authStore from '@/store/auth'
 import type { ApiClientErrorResponse, ApiClientResponse, RequestConfig } from './types'
 
+/**
+ * 规范化 baseURL
+ * 
+ * 支持两种使用模式：
+ * 1. 直接请求后端：设置完整 URL（如 https://localhost:8080/api/v1/）
+ *    或域名+路径（如 localhost:8080/api/v1/，会自动添加 https://）
+ * 2. 通过代理请求：设置相对路径（如 /api/v1），请求会发送到当前域名，由 Nginx/Vercel 代理到后端
+ * 
+ * @param url 环境变量 VITE_API_CLIENT_URL 的值
+ * @returns 规范化后的 baseURL
+ */
+function normalizeBaseURL(url: string | undefined): string {
+  if (!url) {
+    return '/api/v1'
+  }
+  
+  // 如果已经包含协议（http:// 或 https://），说明是完整 URL，直接返回
+  // 模式：直接请求后端
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url
+  }
+  
+  // 如果是相对路径（以 / 开头），说明要通过代理，直接返回
+  // 模式：通过代理请求
+  if (url.startsWith('/')) {
+    return url
+  }
+  
+  // 否则是域名+路径格式（如 localhost:8080/api/v1/），自动添加 https:// 协议
+  // 模式：直接请求后端
+  return `https://${url}`
+}
+
 export const client = axios.create({
-  baseURL: ENV.API_CLIENT_URL || '/api/v1',
+  baseURL: normalizeBaseURL(ENV.API_CLIENT_URL),
   timeout: 60000,
   headers: {
     'Content-Type': 'application/json',
